@@ -140,7 +140,6 @@ def configure_logging(debug: bool, log_file: str):
 
 
 configure_logging(args.debug, args.log_file)
-print("Starting...", flush=True)
 
 
 def redirect_library_loggers_to_root_file():
@@ -511,6 +510,33 @@ def main():
     if args.debug and args.log_file != "-":
         redirect_library_loggers_to_root_file()
 
+    # Early header - show daemon info before loading
+    print("\n" + "=" * 60)
+    print("🚀 PARAKEET TDT 0.6B V3 - DAEMON MODE")
+    print("=" * 60)
+
+    # Device detection (early, before model load)
+    use_cuda = torch.cuda.is_available() and not args.cpu
+    device = "cuda" if use_cuda else "cpu"
+
+    print(f"\n📋 Configuration:")
+    print(f"   Device: {device.upper()}")
+    if torch.cuda.is_available():
+        print(f"   GPU: {torch.cuda.get_device_name(0)}")
+        if use_cuda:
+            cap = torch.cuda.get_device_capability()
+            print(f"   CUDA Capability: {cap[0]}.{cap[1]}")
+        else:
+            print(f"   Note: GPU available but using CPU (--cpu flag)")
+    else:
+        print(f"   Note: No CUDA GPU detected, using CPU")
+
+    print(f"   Socket: {SOCKET_PATH}")
+    print(f"   Model: nvidia/parakeet-tdt-0.6b-v3")
+    if args.debug:
+        print(f"   Debug: enabled (logging to {args.log_file})")
+    print("")
+
     # Spinner: Loading model
     stop_spinner = threading.Event()
     spinner_thread = threading.Thread(
@@ -532,7 +558,7 @@ def main():
     except Exception as e:
         stop_spinner.set()
         spinner_thread.join()
-        print(f"❌ Error: {e}")
+        print(f"❌ Error loading model: {e}")
         return 1
     finally:
         t_load1 = time.perf_counter()
@@ -542,39 +568,37 @@ def main():
     if _shutdown_event.is_set():
         return 0
 
-    # Device
-    use_cuda = torch.cuda.is_available() and not args.cpu
-    device = "cuda" if use_cuda else "cpu"
+    # Move model to device
+    print(f"✅ Model loaded ({t_load1 - t_load0:.1f}s)")
     model.to(device)
     model.eval()
 
     # Set up socket server
+    print(f"🔌 Setting up socket server...")
     sock = setup_socket_server()
 
     # Notify model loaded
     notify("Parakeet Ready", f"Model loaded on {device}, ready for dictation")
 
-    # Header
-    print("🚀 PARAKEET TDT 0.6B V3 - DAEMON MODE")
-    print(f"Device: {device}")
-    if torch.cuda.is_available():
-        print(f"✅ GPU: {torch.cuda.get_device_name(0)}")
+    # Ready message
+    print(f"✅ Socket server ready")
+    print("\n" + "=" * 60)
+    print("📡 DAEMON READY")
     print("=" * 60)
-    print(f"📡 Listening on: {SOCKET_PATH}")
-    print("   Send 'start' to begin recording")
-    print("   Send 'stop' to transcribe")
-    print("   Ctrl+C to exit")
+    print(f"   Listening on: {SOCKET_PATH}")
+    print(f"   Commands: start, stop, toggle, status, shutdown")
+    print(f"   Control via: make toggle")
+    print(f"   Exit: Ctrl+C")
     print("=" * 60 + "\n")
 
     if args.debug:
-        print(f"Model device: {next(model.parameters()).device}")
+        print(f"Debug info:")
+        print(f"   Model device: {next(model.parameters()).device}")
         if use_cuda:
-            cap = torch.cuda.get_device_capability()
-            print(f"CUDA capability: {cap[0]}.{cap[1]}")
             print(
-                f"GPU alloc (MiB) after load: {torch.cuda.memory_allocated() / 1024**2:.2f}"
+                f"   GPU alloc (MiB) after load: {torch.cuda.memory_allocated() / 1024**2:.2f}"
             )
-        print(f"Model load time: {t_load1 - t_load0:.3f}s")
+        print("")
 
     global _daemon_state
 

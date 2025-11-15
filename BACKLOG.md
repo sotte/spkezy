@@ -17,3 +17,4 @@ This file contains things to do for this repo.
 - Basic daemon implementation
 - Add notifications: on model load; on start recording; on stop recording
 - Add `parakeet-ctl.py toggle` to toggle recording
+- Make daemon output more informative: show config early (CPU/GPU, socket path, model name), progress indicators, and clear status messages
