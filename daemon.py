@@ -241,10 +241,10 @@ if not args.debug:
     _silence_start()
 
 # ============ Heavy imports ============
-import nemo.collections.asr as nemo_asr
-import pyaudio
-import pyperclip
-import torch
+import nemo.collections.asr as nemo_asr  # noqa: E402
+import pyaudio  # noqa: E402
+import pyperclip  # noqa: E402
+import torch  # noqa: E402
 
 if not args.debug:
     _silence_stop()
@@ -350,7 +350,7 @@ def record_audio_until_stop(sample_rate=16000, device_index=None):
             print(f"❌ Audio error: {e}")
             try:
                 p.terminate()
-            except:
+            except Exception:
                 pass
             return None
 
@@ -374,7 +374,7 @@ def record_audio_until_stop(sample_rate=16000, device_index=None):
             try:
                 data = stream.read(1024, exception_on_overflow=False)
                 frames.append(data)
-            except:
+            except Exception:
                 continue
 
         stream.stop_stream()
@@ -481,7 +481,7 @@ def handle_client_command(client_socket):
         try:
             error_response = {"status": "error", "message": str(e)}
             client_socket.sendall((json.dumps(error_response) + "\n").encode())
-        except:
+        except Exception:
             pass
     finally:
         client_socket.close()
@@ -555,7 +555,7 @@ def main():
     use_cuda = torch.cuda.is_available() and not args.cpu
     device = "cuda" if use_cuda else "cpu"
 
-    print(f"\n📋 Configuration:")
+    print("\n📋 Configuration:")
     print(f"   Device: {device.upper()}")
     if torch.cuda.is_available():
         print(f"   GPU: {torch.cuda.get_device_name(0)}")
@@ -563,12 +563,12 @@ def main():
             cap = torch.cuda.get_device_capability()
             print(f"   CUDA Capability: {cap[0]}.{cap[1]}")
         else:
-            print(f"   Note: GPU available but using CPU (--cpu flag)")
+            print("   Note: GPU available but using CPU (--cpu flag)")
     else:
-        print(f"   Note: No CUDA GPU detected, using CPU")
+        print("   Note: No CUDA GPU detected, using CPU")
 
     print(f"   Socket: {SOCKET_PATH}")
-    print(f"   Model: nvidia/parakeet-tdt-0.6b-v3")
+    print("   Model: nvidia/parakeet-tdt-0.6b-v3")
     if args.debug:
         print(f"   Debug: enabled (logging to {args.log_file})")
     print("")
@@ -610,25 +610,25 @@ def main():
     model.eval()
 
     # Set up socket server
-    print(f"🔌 Setting up socket server...")
+    print("🔌 Setting up socket server...")
     sock = setup_socket_server()
 
     # Notify model loaded
     notify("Parakeet Ready", f"Model loaded on {device}, ready for dictation")
 
     # Ready message
-    print(f"✅ Socket server ready")
+    print("✅ Socket server ready")
     print("\n" + "=" * 60)
     print("📡 DAEMON READY")
     print("=" * 60)
     print(f"   Listening on: {SOCKET_PATH}")
-    print(f"   Commands: start, stop, toggle, status, shutdown")
-    print(f"   Control via: make toggle")
-    print(f"   Exit: Ctrl+C")
+    print("   Commands: start, stop, toggle, status, shutdown")
+    print("   Control via: make toggle")
+    print("   Exit: Ctrl+C")
     print("=" * 60 + "\n")
 
     if args.debug:
-        print(f"Debug info:")
+        print("Debug info:")
         print(f"   Model device: {next(model.parameters()).device}")
         if use_cuda:
             print(
@@ -693,7 +693,7 @@ def main():
                 print(f"❌ Error: {e}")
                 try:
                     os.unlink(temp_path)
-                except:
+                except OSError:
                     pass
                 # Return to IDLE state
                 with _state_lock:
@@ -707,7 +707,7 @@ def main():
             if _shutdown_event.is_set():
                 try:
                     os.unlink(temp_path)
-                except:
+                except OSError:
                     pass
                 break
 
@@ -751,7 +751,7 @@ def main():
 
             try:
                 os.unlink(temp_path)
-            except:
+            except OSError:
                 pass
 
             # Return to IDLE state
