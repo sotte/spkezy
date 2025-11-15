@@ -87,6 +87,9 @@ parser.add_argument(
     "--no-clipboard", action="store_true", help="Do not copy transcript to clipboard"
 )
 parser.add_argument(
+    "--no-auto-type", action="store_true", help="Disable auto-typing transcript (falls back to clipboard)"
+)
+parser.add_argument(
     "--log-file",
     default="transcriber.debug.log",
     help="Debug log file (use '-' for stderr)",
@@ -266,6 +269,38 @@ def notify(title: str, message: str, timeout: int = 2000, urgency: str = "normal
         logging.warning(f"Notification failed: {e}")
 
 
+def play_sound():
+    """Play sound.mp3 via paplay (non-blocking)."""
+    try:
+        sound_file = Path(__file__).parent / "sound.mp3"
+        if not sound_file.exists():
+            return
+        subprocess.Popen(
+            ["paplay", str(sound_file)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as e:
+        logging.debug(f"Sound playback failed: {e}")
+
+
+def auto_type(text: str):
+    """Auto-type text using wtype (Wayland)."""
+    try:
+        subprocess.run(
+            ["wtype", text],
+            check=True,
+            capture_output=True,
+        )
+        logging.debug(f"Auto-typed: {text[:50]}...")
+    except FileNotFoundError:
+        logging.warning("wtype command not found - install wtype package")
+    except subprocess.CalledProcessError as e:
+        logging.warning(f"wtype failed with exit code {e.returncode}: {e.stderr.decode()}")
+    except Exception as e:
+        logging.warning(f"Unexpected auto-type error: {e}")
+
+
 # ============ Spinner ============
 def spinner_animation(stop_event, prefix, stream=None):
     stream = stream or sys.__stdout__
@@ -323,6 +358,7 @@ def record_audio_until_stop(sample_rate=16000, device_index=None):
     logging.info("Recording started")
     print("🎤 Recording...", flush=True)
     notify("Recording", "Listening...")
+    play_sound()
 
     with _state_lock:
         _daemon_state = DaemonState.RECORDING
@@ -675,6 +711,7 @@ def main():
                     pass
                 break
 
+            play_sound()
             print(f"📝 {transcript}\n")
             logging.info(f"Transcription: {transcript}")
 
@@ -682,14 +719,25 @@ def main():
             preview = transcript[:80] + "..." if len(transcript) > 80 else transcript
             notify("Transcription Complete", preview)
 
-            if not args.no_clipboard:
+            # Auto-type or copy to clipboard
+            if not args.no_auto_type:
+                try:
+                    auto_type(transcript)
+                    logging.info("Auto-typed transcript")
+                except Exception as e:
+                    logging.error(f"Auto-type failed: {e}")
+                    if args.debug:
+                        print(f"Auto-type error: {e}")
+            elif not args.no_clipboard:
                 try:
                     pyperclip.copy(transcript)
                     logging.info("Copied to clipboard")
-                except Exception as e:
+                except pyperclip.PyperclipException as e:
                     logging.warning(f"Clipboard error: {e}")
                     if args.debug:
                         print(f"Clipboard warning: {e}")
+                except Exception as e:
+                    logging.warning(f"Unexpected clipboard error: {e}")
 
             if args.debug:
                 secs = len(audio_data) / (2 * sr)

@@ -18,3 +18,5 @@ This file contains things to do for this repo.
 - Add notifications: on model load; on start recording; on stop recording
 - Add `parakeet-ctl.py toggle` to toggle recording
 - Make daemon output more informative: show config early (CPU/GPU, socket path, model name), progress indicators, and clear status messages
+- Add audio feedback: play sound.mp3 on recording start/stop
+- Add auto-type functionality: automatically type transcript using wtype (Wayland) instead of just copying to clipboard
