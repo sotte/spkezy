@@ -7,6 +7,65 @@ from pathlib import Path
 import logging
 import structlog
 import os
+import threading
+import signal
+import atexit
+from enum import Enum
+
+# ===== Daemon State =====
+
+class DaemonState(Enum):
+    IDLE = "idle"
+    RECORDING = "recording"
+    TRANSCRIBING = "transcribing"
+
+
+class StateManager:
+    """Thread-safe daemon state management."""
+
+    def __init__(self):
+        self._state = DaemonState.IDLE
+        self._lock = threading.Lock()
+        self._shutdown_event = threading.Event()
+        self._recording_start_event = threading.Event()
+        self._recording_stop_event = threading.Event()
+
+    @property
+    def state(self) -> DaemonState:
+        with self._lock:
+            return self._state
+
+    def set_state(self, new_state: DaemonState):
+        with self._lock:
+            self._state = new_state
+
+    def request_shutdown(self):
+        self._shutdown_event.set()
+
+    def is_shutdown_requested(self) -> bool:
+        return self._shutdown_event.is_set()
+
+    def wait_for_start(self, timeout: float = 0.1) -> bool:
+        """Wait for start command. Returns True if start requested, False if shutdown."""
+        while not self.is_shutdown_requested():
+            if self._recording_start_event.wait(timeout=timeout):
+                self._recording_start_event.clear()
+                return True
+        return False
+
+    def signal_start(self):
+        self._recording_start_event.set()
+
+    def signal_stop(self):
+        self._recording_stop_event.set()
+
+    def wait_for_stop(self, timeout: float = 0.1) -> bool:
+        """Check if stop was requested. Returns True if stop requested."""
+        if self._recording_stop_event.wait(timeout=timeout):
+            self._recording_stop_event.clear()
+            return True
+        return False
+
 
 # ===== CLI Arguments =====
 
@@ -133,6 +192,24 @@ def list_audio_devices():
         pa.terminate()
 
 
+def setup_signal_handlers(state_manager: StateManager):
+    """Set up graceful shutdown on SIGINT/SIGTERM."""
+
+    def signal_handler(signum, frame):
+        state_manager.request_shutdown()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Suppress KeyboardInterrupt traceback
+    def no_kbi_traceback(exc_type, exc, tb):
+        if exc_type is KeyboardInterrupt:
+            return
+        sys.__excepthook__(exc_type, exc, tb)
+
+    sys.excepthook = no_kbi_traceback
+
+
 # ===== Main =====
 
 def main():
@@ -149,6 +226,9 @@ def main():
 
     log = configure_logging(args.debug, args.log_file)
     socket_path = get_socket_path(args.socket_path)
+    state_manager = StateManager()
+
+    setup_signal_handlers(state_manager)
 
     log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
 
