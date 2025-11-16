@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import logging
 import structlog
+import os
 
 # ===== CLI Arguments =====
 
@@ -70,6 +71,18 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def get_socket_path(args_socket_path: str | None) -> Path:
+    """Determine Unix socket path from args or environment."""
+    if args_socket_path:
+        return Path(args_socket_path)
+
+    runtime_dir = os.getenv("XDG_RUNTIME_DIR")
+    if runtime_dir:
+        return Path(runtime_dir) / "parakeet-daemon.sock"
+
+    return Path("/tmp") / "parakeet-daemon.sock"
+
+
 # ===== Logging Configuration =====
 
 def configure_logging(debug: bool, log_file: str | None):
@@ -102,13 +115,42 @@ def configure_logging(debug: bool, log_file: str | None):
     return structlog.get_logger()
 
 
+def list_audio_devices():
+    """List available audio input devices and exit."""
+    import pyaudio  # Lazy import - only needed for this command
+
+    pa = pyaudio.PyAudio()
+    try:
+        count = pa.get_device_count()
+        print("Input devices:")
+        for i in range(count):
+            info = pa.get_device_info_by_index(i)
+            if int(info.get("maxInputChannels", 0)) > 0:
+                name = info.get("name", "unknown")
+                rate = int(info.get("defaultSampleRate", 0))
+                print(f"- id={i} name='{name}' rate={rate}Hz")
+    finally:
+        pa.terminate()
+
+
 # ===== Main =====
 
 def main():
     args = parse_arguments()
-    log = configure_logging(args.debug, args.log_file)
 
-    log.info("daemon_starting", version="2.0")
+    # Fast path: list devices
+    if args.list_devices:
+        try:
+            list_audio_devices()
+            return 0
+        except Exception as e:
+            print(f"Error listing devices: {e}")
+            return 1
+
+    log = configure_logging(args.debug, args.log_file)
+    socket_path = get_socket_path(args.socket_path)
+
+    log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
 
     # TODO: Implement rest of daemon
 
