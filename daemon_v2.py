@@ -527,6 +527,62 @@ def save_audio_to_wav(audio_data: bytes, sample_rate: int = 16000) -> str:
     return tmp.name
 
 
+# ===== Transcription =====
+
+def transcribe_audio(model, audio_path: str, device: str, log) -> str:
+    """Transcribe audio file using NeMo model."""
+    log.info("transcription_started")
+
+    t_start = time.perf_counter()
+    try:
+        result = model.transcribe([audio_path], verbose=False)
+
+        if isinstance(result, list) and len(result) > 0:
+            first = result[0]
+            transcript = getattr(first, "text", first if isinstance(first, str) else str(first))
+        else:
+            transcript = str(result)
+
+        t_end = time.perf_counter()
+        log.info("transcription_completed", length=len(transcript), time_seconds=round(t_end - t_start, 3))
+
+        return transcript
+
+    except Exception as e:
+        log.error("transcription_failed", error=str(e))
+        raise
+
+
+def handle_transcript_output(
+    transcript: str,
+    auto_type: bool,
+    use_clipboard: bool,
+    log,
+):
+    """Handle transcript output: auto-type or clipboard."""
+    if auto_type:
+        try:
+            auto_type_text(transcript, log)
+        except Exception as e:
+            log.warning("auto_type_failed", error=str(e))
+            # Fall back to clipboard if auto-type fails
+            if use_clipboard:
+                copy_to_clipboard(transcript, log)
+    elif use_clipboard:
+        copy_to_clipboard(transcript, log)
+
+
+def copy_to_clipboard(text: str, log):
+    """Copy text to clipboard using pyperclip."""
+    import pyperclip  # Lazy import
+
+    try:
+        pyperclip.copy(text)
+        log.info("copied_to_clipboard", length=len(text))
+    except Exception as e:
+        log.warning("clipboard_failed", error=str(e))
+
+
 # ===== Main =====
 
 def main():
