@@ -12,6 +12,8 @@ import signal
 import atexit
 from enum import Enum
 import subprocess
+import time
+import warnings
 
 # ===== Daemon State =====
 
@@ -268,6 +270,48 @@ def auto_type_text(text: str, log=None):
         raise
 
 
+# ===== Model Loading =====
+
+def load_model(force_cpu: bool, log):
+    """Load NeMo ASR model with lazy imports."""
+    log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
+
+    # Lazy imports - only load when actually starting daemon
+    import torch
+    import nemo.collections.asr as nemo_asr
+
+    # Suppress warnings
+    warnings.filterwarnings("ignore")
+
+    # Detect device
+    use_cuda = torch.cuda.is_available() and not force_cpu
+    device = "cuda" if use_cuda else "cpu"
+
+    # Log device info
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        if use_cuda:
+            cap = torch.cuda.get_device_capability()
+            log.info("device_detected", device="cuda", gpu=gpu_name, cuda_capability=f"{cap[0]}.{cap[1]}")
+        else:
+            log.info("device_detected", device="cpu", note="GPU available but using CPU (--cpu flag)", gpu=gpu_name)
+    else:
+        log.info("device_detected", device="cpu", note="No CUDA GPU detected")
+
+    # Load model
+    t_start = time.perf_counter()
+    model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
+    t_end = time.perf_counter()
+
+    # Move to device
+    model.to(device)
+    model.eval()
+
+    log.info("model_loaded", device=device, load_time_seconds=round(t_end - t_start, 1))
+
+    return model, device
+
+
 # ===== Main =====
 
 def main():
@@ -290,7 +334,18 @@ def main():
 
     log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
 
-    # TODO: Implement rest of daemon
+    # Load model
+    try:
+        model, device = load_model(args.cpu, log)
+    except Exception as e:
+        log.error("model_load_failed", error=str(e))
+        return 1
+
+    send_notification("Parakeet Ready", f"Model loaded on {device}", not args.no_notifications, log)
+
+    log.info("daemon_ready")
+
+    # TODO: Socket server and main loop
 
     return 0
 
