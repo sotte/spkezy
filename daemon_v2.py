@@ -11,6 +11,7 @@ import threading
 import signal
 import atexit
 from enum import Enum
+import subprocess
 
 # ===== Daemon State =====
 
@@ -208,6 +209,63 @@ def setup_signal_handlers(state_manager: StateManager):
         sys.__excepthook__(exc_type, exc, tb)
 
     sys.excepthook = no_kbi_traceback
+
+
+# ===== Notifications & Audio Feedback =====
+
+def send_notification(title: str, message: str, enabled: bool = True, log=None):
+    """Send desktop notification via notify-send."""
+    if not enabled:
+        return
+
+    try:
+        subprocess.run(
+            ["notify-send", "-u", "normal", "-t", "2000", title, message],
+            check=False,
+            capture_output=True,
+        )
+        if log:
+            log.debug("notification_sent", title=title, message=message)
+    except Exception as e:
+        if log:
+            log.warning("notification_failed", error=str(e))
+
+
+def play_sound(log=None):
+    """Play sound.mp3 via paplay (non-blocking)."""
+    try:
+        sound_file = Path(__file__).parent / "sound.mp3"
+        if not sound_file.exists():
+            return
+
+        subprocess.Popen(
+            ["paplay", str(sound_file)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as e:
+        if log:
+            log.debug("sound_playback_failed", error=str(e))
+
+
+def auto_type_text(text: str, log=None):
+    """Auto-type text using wtype (Wayland)."""
+    try:
+        subprocess.run(
+            ["wtype", text],
+            check=True,
+            capture_output=True,
+        )
+        if log:
+            log.info("auto_typed", length=len(text))
+    except FileNotFoundError:
+        if log:
+            log.warning("wtype_not_found", message="install wtype package")
+        raise
+    except subprocess.CalledProcessError as e:
+        if log:
+            log.warning("wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode())
+        raise
 
 
 # ===== Main =====
