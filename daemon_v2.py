@@ -16,6 +16,8 @@ import time
 import warnings
 import socket
 import json
+import wave
+import tempfile
 
 # ===== Daemon State =====
 
@@ -454,6 +456,75 @@ class UnixSocketServer:
         if self.socket_path.exists():
             self.socket_path.unlink()
         self.log.info("socket_cleanup_complete")
+
+
+# ===== Audio Recording =====
+
+def record_audio(
+    state_manager: StateManager,
+    sample_rate: int = 16000,
+    device_index: int | None = None,
+    log=None,
+) -> bytes | None:
+    """Record audio until stop event or shutdown."""
+    import pyaudio  # Lazy import
+
+    p = pyaudio.PyAudio()
+
+    try:
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=sample_rate,
+            input=True,
+            input_device_index=device_index,
+            frames_per_buffer=1024,
+        )
+    except Exception as e:
+        if log:
+            log.error("audio_stream_open_failed", error=str(e))
+        p.terminate()
+        return None
+
+    frames = []
+
+    if log:
+        log.info("recording_started")
+
+    state_manager.set_state(DaemonState.RECORDING)
+
+    try:
+        while not state_manager.is_shutdown_requested():
+            # Check for stop signal
+            if state_manager.wait_for_stop(timeout=0):
+                if log:
+                    log.info("recording_stopped", frames=len(frames))
+                break
+
+            try:
+                data = stream.read(1024, exception_on_overflow=False)
+                frames.append(data)
+            except Exception:
+                continue
+    finally:
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+    return b"".join(frames) if frames else None
+
+
+def save_audio_to_wav(audio_data: bytes, sample_rate: int = 16000) -> str:
+    """Save audio data to temporary WAV file. Returns path."""
+    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+
+    with wave.open(tmp.name, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # 16-bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio_data)
+
+    return tmp.name
 
 
 # ===== Main =====
