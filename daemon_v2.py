@@ -4,6 +4,7 @@
 import sys
 import argparse
 from pathlib import Path
+import logging
 import structlog
 
 # ===== CLI Arguments =====
@@ -77,21 +78,24 @@ def configure_logging(debug: bool, log_file: str | None):
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
+        # Use human-readable console output for stderr, JSON for file logging
         structlog.dev.ConsoleRenderer() if not log_file else structlog.processors.JSONRenderer(),
     ]
 
-    if debug:
-        level = "DEBUG"
-    else:
-        level = "INFO"
+    # Set minimum log level
+    min_level = logging.DEBUG if debug else logging.INFO
+
+    # Determine output file
+    output_file = sys.stderr
+    if log_file:
+        output_file = open(log_file, "w")  # noqa: SIM115
+        # Note: File handle kept open for daemon lifetime, closed on process exit
 
     structlog.configure(
         processors=processors,
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(structlog.stdlib.BoundLogger, level.upper(), structlog.stdlib.logging.INFO)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(min_level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr if not log_file else open(log_file, "w")),
+        logger_factory=structlog.PrintLoggerFactory(file=output_file),
         cache_logger_on_first_use=True,
     )
 
