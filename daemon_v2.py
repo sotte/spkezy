@@ -621,15 +621,83 @@ def main():
 
     log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 
-    # TODO: Main recording loop
+    # Main loop
+    try:
+        while not state_manager.is_shutdown_requested():
+            # Wait for start command
+            if not state_manager.wait_for_start():
+                break
 
-    # Wait for shutdown
-    while not state_manager.is_shutdown_requested():
-        time.sleep(0.1)
+            log.info("recording_triggered")
+            send_notification("Recording", "Listening...", not args.no_notifications, log)
+            play_sound(log)
 
-    # Cleanup
-    socket_server.cleanup()
-    log.info("daemon_stopped")
+            # Record audio
+            audio_data = record_audio(
+                state_manager,
+                sample_rate=16000,
+                device_index=args.input_device,
+                log=log,
+            )
+
+            if not audio_data or state_manager.is_shutdown_requested():
+                state_manager.set_state(DaemonState.IDLE)
+                continue
+
+            # Save to temp file
+            try:
+                temp_path = save_audio_to_wav(audio_data)
+            except Exception as e:
+                log.error("audio_save_failed", error=str(e))
+                state_manager.set_state(DaemonState.IDLE)
+                continue
+
+            # Transcribe
+            state_manager.set_state(DaemonState.TRANSCRIBING)
+
+            try:
+                transcript = transcribe_audio(model, temp_path, device, log)
+            except Exception as e:
+                log.error("transcription_error", error=str(e))
+                os.unlink(temp_path)
+                state_manager.set_state(DaemonState.IDLE)
+                continue
+            finally:
+                # Clean up temp file
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
+
+            if state_manager.is_shutdown_requested():
+                break
+
+            # Output
+            play_sound(log)
+            log.info("transcript", text=transcript)
+
+            # Notification with preview
+            preview = transcript[:80] + "..." if len(transcript) > 80 else transcript
+            send_notification("Transcription Complete", preview, not args.no_notifications, log)
+
+            # Handle output (auto-type or clipboard)
+            handle_transcript_output(
+                transcript,
+                auto_type=not args.no_auto_type,
+                use_clipboard=not args.no_clipboard,
+                log=log,
+            )
+
+            # Return to idle
+            state_manager.set_state(DaemonState.IDLE)
+            log.info("ready_for_next_recording")
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Cleanup
+        socket_server.cleanup()
+        log.info("daemon_stopped")
 
     return 0
 
