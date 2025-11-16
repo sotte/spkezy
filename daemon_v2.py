@@ -14,6 +14,8 @@ from enum import Enum
 import subprocess
 import time
 import warnings
+import socket
+import json
 
 # ===== Daemon State =====
 
@@ -312,6 +314,148 @@ def load_model(force_cpu: bool, log):
     return model, device
 
 
+# ===== Socket Server =====
+
+class UnixSocketServer:
+    """Unix socket server for daemon control."""
+
+    def __init__(self, socket_path: Path, state_manager: StateManager, log):
+        self.socket_path = socket_path
+        self.state_manager = state_manager
+        self.log = log
+        self.sock = None
+
+    def start(self):
+        """Set up and start the socket server."""
+        # Clean up stale socket
+        if self.socket_path.exists():
+            try:
+                # Try to connect - if it works, daemon is already running
+                test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                test_sock.connect(str(self.socket_path))
+                test_sock.close()
+                self.log.error("daemon_already_running", socket_path=str(self.socket_path))
+                return False
+            except ConnectionRefusedError:
+                # Stale socket, remove it
+                self.socket_path.unlink()
+                self.log.info("removed_stale_socket", socket_path=str(self.socket_path))
+
+        # Create socket
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.bind(str(self.socket_path))
+        self.sock.listen(5)
+
+        self.log.info("socket_server_started", socket_path=str(self.socket_path))
+
+        # Start server thread
+        server_thread = threading.Thread(target=self._server_loop, daemon=True)
+        server_thread.start()
+
+        return True
+
+    def _server_loop(self):
+        """Accept connections and handle commands in separate threads."""
+        while not self.state_manager.is_shutdown_requested():
+            try:
+                self.sock.settimeout(0.5)
+                client_sock, _ = self.sock.accept()
+                # Handle each command in a separate thread
+                threading.Thread(
+                    target=self._handle_command,
+                    args=(client_sock,),
+                    daemon=True
+                ).start()
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if not self.state_manager.is_shutdown_requested():
+                    self.log.error("socket_server_error", error=str(e))
+                break
+
+        self.log.info("socket_server_stopped")
+
+    def _handle_command(self, client_socket):
+        """Handle incoming command from client."""
+        try:
+            data = client_socket.recv(1024).decode().strip()
+            if not data:
+                return
+
+            try:
+                command = json.loads(data)
+                cmd = command.get("action", "").lower()
+            except json.JSONDecodeError:
+                # Simple string command
+                cmd = data.lower()
+
+            self.log.debug("command_received", command=cmd)
+
+            response = self._dispatch_command(cmd)
+            client_socket.sendall((json.dumps(response) + "\n").encode())
+
+        except Exception as e:
+            self.log.error("command_handling_error", error=str(e))
+            try:
+                error_response = {"status": "error", "message": str(e)}
+                client_socket.sendall((json.dumps(error_response) + "\n").encode())
+            except Exception:
+                pass
+        finally:
+            client_socket.close()
+
+    def _dispatch_command(self, cmd: str) -> dict:
+        """Dispatch command to appropriate handler."""
+        current_state = self.state_manager.state
+
+        if cmd == "start":
+            if current_state == DaemonState.IDLE:
+                self.state_manager.signal_start()
+                self.log.info("command_start")
+                return {"status": "ok", "state": "recording"}
+            else:
+                return {"status": "error", "message": f"Cannot start, currently {current_state.value}"}
+
+        elif cmd == "stop":
+            if current_state == DaemonState.RECORDING:
+                self.state_manager.signal_stop()
+                self.log.info("command_stop")
+                return {"status": "ok", "state": "transcribing"}
+            else:
+                return {"status": "error", "message": f"Cannot stop, currently {current_state.value}"}
+
+        elif cmd == "toggle":
+            if current_state == DaemonState.IDLE:
+                self.state_manager.signal_start()
+                self.log.info("command_toggle", action="started")
+                return {"status": "ok", "action": "started", "state": "recording"}
+            elif current_state == DaemonState.RECORDING:
+                self.state_manager.signal_stop()
+                self.log.info("command_toggle", action="stopped")
+                return {"status": "ok", "action": "stopped", "state": "transcribing"}
+            else:
+                return {"status": "error", "message": f"Cannot toggle while {current_state.value}"}
+
+        elif cmd == "status":
+            return {"status": "ok", "state": current_state.value}
+
+        elif cmd == "shutdown":
+            self.log.info("command_shutdown")
+            self.state_manager.request_shutdown()
+            return {"status": "ok", "message": "shutting down"}
+
+        else:
+            return {"status": "error", "message": f"Unknown command: {cmd}"}
+
+    def cleanup(self):
+        """Clean up socket resources."""
+        if self.sock:
+            self.sock.close()
+        if self.socket_path.exists():
+            self.socket_path.unlink()
+        self.log.info("socket_cleanup_complete")
+
+
 # ===== Main =====
 
 def main():
@@ -341,11 +485,24 @@ def main():
         log.error("model_load_failed", error=str(e))
         return 1
 
+    # Start socket server
+    socket_server = UnixSocketServer(socket_path, state_manager, log)
+    if not socket_server.start():
+        return 1
+
     send_notification("Parakeet Ready", f"Model loaded on {device}", not args.no_notifications, log)
 
-    log.info("daemon_ready")
+    log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 
-    # TODO: Socket server and main loop
+    # TODO: Main recording loop
+
+    # Wait for shutdown
+    while not state_manager.is_shutdown_requested():
+        time.sleep(0.1)
+
+    # Cleanup
+    socket_server.cleanup()
+    log.info("daemon_stopped")
 
     return 0
 
