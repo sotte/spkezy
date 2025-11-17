@@ -10,6 +10,7 @@ dependencies = [
     "numpy<2.0",
     "pyperclip",
     "structlog",
+    "onnx<1.18.0",
 ]
 
 [project.optional-dependencies]
@@ -40,15 +41,21 @@ explicit = true
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra == 'cuda'" },
+    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
 ]
 torchaudio = [
     { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra == 'cuda'" },
+    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
 ]
 torchvision = [
     { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra == 'cuda'" },
+    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
+]
+
+[tool.hatch.build]
+include = [
+    "*.py",
+    "sound.mp3",
 ]
 
 [build-system]
