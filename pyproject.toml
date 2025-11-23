@@ -5,25 +5,17 @@ description = "Free, open-source local AI dictation using NVIDIA NeMo Parakeet T
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "nemo_toolkit[asr]",
-    "pyaudio",
-    "numpy<2.0",
-    "pyperclip",
-    "structlog",
-    "onnx<1.18.0",
+  "nemo_toolkit[asr]",
+  "pyaudio",
+  "numpy<2.0",
+  "pyperclip",
+  "structlog",
+  "onnx<1.18.0",
 ]
 
 [project.optional-dependencies]
-cpu = [
-    "torch",
-    "torchaudio",
-    "torchvision",
-]
-cuda = [
-    "torch",
-    "torchaudio",
-    "torchvision",
-]
+cpu = ["torch", "torchaudio", "torchvision"]
+cuda = ["torch", "torchaudio", "torchvision"]
 
 [tool.uv]
 index-url = "https://pypi.org/simple"
@@ -40,23 +32,20 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
+  { index = "pytorch-cpu", marker = "extra == 'cpu'" },
+  { index = "pytorch-cuda", marker = "extra != 'cpu'" },
 ]
 torchaudio = [
-    { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
+  { index = "pytorch-cpu", marker = "extra == 'cpu'" },
+  { index = "pytorch-cuda", marker = "extra != 'cpu'" },
 ]
 torchvision = [
-    { index = "pytorch-cpu", marker = "extra == 'cpu'" },
-    { index = "pytorch-cuda", marker = "extra != 'cpu'" },
+  { index = "pytorch-cpu", marker = "extra == 'cpu'" },
+  { index = "pytorch-cuda", marker = "extra != 'cpu'" },
 ]
 
 [tool.hatch.build]
-include = [
-    "*.py",
-    "sound.mp3",
-]
+include = ["*.py", "sound.mp3"]
 
 [build-system]
 requires = ["hatchling"]

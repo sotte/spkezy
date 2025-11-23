@@ -1,6 +1,6 @@
-# Parakeet Dictation
+# `spk` - automatic speech recognition (ASR) for linux
 
-Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
+Local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
 
 ## Quick Start
 
@@ -13,5 +13,3 @@ make setup-gpu    # GPU (CUDA 12.1)
 make daemon       # Start daemon
 make toggle       # Start/stop recording
 ```
-
-See `CLAUDE.md` for full documentation.
