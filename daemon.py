@@ -559,17 +559,17 @@ def handle_transcript_output(
     use_clipboard: bool,
     log,
 ):
-    """Handle transcript output: auto-type or clipboard."""
+    """Handle transcript output: copy to clipboard first, then auto-type."""
+    # Always copy to clipboard first (unless disabled)
+    if use_clipboard:
+        copy_to_clipboard(transcript, log)
+
+    # Then auto-type if enabled
     if auto_type:
         try:
             auto_type_text(transcript, log)
         except Exception as e:
             log.warning("auto_type_failed", error=str(e))
-            # Fall back to clipboard if auto-type fails
-            if use_clipboard:
-                copy_to_clipboard(transcript, log)
-    elif use_clipboard:
-        copy_to_clipboard(transcript, log)
 
 
 def copy_to_clipboard(text: str, log):
