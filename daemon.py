@@ -281,41 +281,20 @@ def auto_type_text(text: str, log=None):
 
 ########################################################################################
 # Model Loading
-def load_model(force_cpu: bool, debug: bool, log):
+def load_model(force_cpu: bool, log):
     """Load NeMo ASR model with lazy imports."""
     log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
-
-    # Context manager to silence library output in non-debug mode
-    class SilenceLibraries:
-        def __enter__(self):
-            if not debug:
-                # Redirect stderr to devnull
-                self.old_stderr = sys.stderr
-                self.devnull = open(os.devnull, "w")
-                sys.stderr = self.devnull
-
-                # Also silence Python logging (used by NeMo)
-                self.old_log_level = logging.root.level
-                logging.root.setLevel(logging.CRITICAL + 1)  # Silence all logging
-            return self
-
-        def __exit__(self, *args):
-            if not debug:
-                sys.stderr = self.old_stderr
-                self.devnull.close()
-                logging.root.setLevel(self.old_log_level)
 
     # Suppress warnings
     warnings.filterwarnings("ignore")
 
-    # Lazy imports - only load when actually starting daemon (silenced if not debug)
-    with SilenceLibraries():
-        import torch
-        import nemo.collections.asr as nemo_asr
+    # Lazy imports - only load when actually starting daemon
+    import torch
+    import nemo.collections.asr as nemo_asr
 
-        # Detect device
-        use_cuda = torch.cuda.is_available() and not force_cpu
-        device = "cuda" if use_cuda else "cpu"
+    # Detect device
+    use_cuda = torch.cuda.is_available() and not force_cpu
+    device = "cuda" if use_cuda else "cpu"
 
     # Log device info
     if torch.cuda.is_available():
@@ -338,13 +317,12 @@ def load_model(force_cpu: bool, debug: bool, log):
     else:
         log.info("device_detected", device="cpu", note="No CUDA GPU detected")
 
-    # Load model (silenced if not debug)
+    # Load model
     t_start = time.perf_counter()
-    with SilenceLibraries():
-        model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
-        # Move to device
-        model.to(device)
-        model.eval()
+    model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
+    # Move to device
+    model.to(device)
+    model.eval()
     t_end = time.perf_counter()
 
     log.info("model_loaded", device=device, load_time_seconds=round(t_end - t_start, 1))
@@ -509,50 +487,26 @@ def record_audio(
     state_manager: StateManager,
     sample_rate: int = 16000,
     device_index: int | None = None,
-    debug: bool = False,
     log=None,
 ) -> bytes | None:
     """Record audio until stop event or shutdown."""
     import pyaudio  # Lazy import
 
-    # Silence ALSA/JACK errors in non-debug mode
-    old_stderr = None
-    devnull = None
-    if not debug:
-        old_stderr = sys.stderr
-        devnull = open(os.devnull, "w")
-        sys.stderr = devnull
+    p = pyaudio.PyAudio()
 
     try:
-        p = pyaudio.PyAudio()
-
-        try:
-            stream = p.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=sample_rate,
-                input=True,
-                input_device_index=device_index,
-                frames_per_buffer=1024,
-            )
-        except Exception as e:
-            if log:
-                log.error("audio_stream_open_failed", error=str(e))
-            p.terminate()
-            return None
-        finally:
-            # Restore stderr after opening stream (ALSA errors happen here)
-            if not debug and old_stderr:
-                sys.stderr = old_stderr
-                if devnull:
-                    devnull.close()
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=sample_rate,
+            input=True,
+            input_device_index=device_index,
+            frames_per_buffer=1024,
+        )
     except Exception as e:
-        if not debug and old_stderr:
-            sys.stderr = old_stderr
-            if devnull:
-                devnull.close()
         if log:
-            log.error("pyaudio_init_failed", error=str(e))
+            log.error("audio_stream_open_failed", error=str(e))
+        p.terminate()
         return None
 
     frames = []
@@ -682,7 +636,7 @@ def main():
 
     # Load model
     try:
-        model, device = load_model(args.cpu, args.debug, log)
+        model, device = load_model(args.cpu, log)
     except Exception as e:
         log.error("model_load_failed", error=str(e))
         return 1
@@ -716,7 +670,6 @@ def main():
                 state_manager,
                 sample_rate=16000,
                 device_index=args.input_device,
-                debug=args.debug,
                 log=log,
             )
 
