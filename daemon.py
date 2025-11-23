@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parakeet TDT 0.6B v3 - Daemon Mode (v2 with structlog)"""
+"""spk - Automatic Speech Recognition Daemon"""
 
 import sys
 import argparse
@@ -79,12 +79,12 @@ class StateManager:
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Parakeet TDT 0.6B v3 daemon - keeps model loaded, listens on Unix socket for commands.",
+        description="spk daemon - keeps ASR model loaded, listens on Unix socket for commands.",
         epilog="""Examples:
-  python daemon_v2.py
-  python daemon_v2.py --debug
-  python daemon_v2.py --cpu
-  python daemon_v2.py --socket-path /tmp/parakeet.sock
+  python daemon.py
+  python daemon.py --debug
+  python daemon.py --cpu
+  python daemon.py --socket-path /tmp/spk.sock
 """,
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -127,7 +127,7 @@ def parse_arguments():
     parser.add_argument(
         "--socket-path",
         default=None,
-        help="Unix socket path (default: $XDG_RUNTIME_DIR/parakeet-daemon.sock or /tmp/parakeet-daemon.sock)",
+        help="Unix socket path (default: $XDG_RUNTIME_DIR/spk-daemon.sock or /tmp/spk-daemon.sock)",
     )
     parser.add_argument(
         "--no-notifications",
@@ -144,9 +144,9 @@ def get_socket_path(args_socket_path: str | None) -> Path:
 
     runtime_dir = os.getenv("XDG_RUNTIME_DIR")
     if runtime_dir:
-        return Path(runtime_dir) / "parakeet-daemon.sock"
+        return Path(runtime_dir) / "spk-daemon.sock"
 
-    return Path("/tmp") / "parakeet-daemon.sock"
+    return Path("/tmp") / "spk-daemon.sock"
 
 
 # ===== Logging Configuration =====
@@ -617,7 +617,7 @@ def main():
     if not socket_server.start():
         return 1
 
-    send_notification("Parakeet Ready", f"Model loaded on {device}", not args.no_notifications, log)
+    send_notification("spk Ready", f"Model loaded on {device}", not args.no_notifications, log)
 
     log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 

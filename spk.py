@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parakeet Daemon Control Client - Send commands to the daemon via Unix socket"""
+"""spk Control Client - Send commands to the daemon via Unix socket"""
 
 import sys
 import os
@@ -12,9 +12,9 @@ def get_socket_path():
     """Get the daemon socket path (matches daemon.py logic)."""
     runtime_dir = os.getenv("XDG_RUNTIME_DIR")
     if runtime_dir:
-        return Path(runtime_dir) / "parakeet-daemon.sock"
+        return Path(runtime_dir) / "spk-daemon.sock"
     else:
-        return Path("/tmp") / "parakeet-daemon.sock"
+        return Path("/tmp") / "spk-daemon.sock"
 
 
 def send_command(command: str, socket_path: Path) -> dict:
@@ -53,7 +53,7 @@ def send_command(command: str, socket_path: Path) -> dict:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: parakeet-ctl.py <command>")
+        print("Usage: spk.py <command>")
         print("")
         print("Commands:")
         print("  toggle    - Toggle recording (start if idle, stop if recording)")
@@ -63,9 +63,9 @@ def main():
         print("  shutdown  - Shutdown the daemon")
         print("")
         print("Example:")
-        print("  python parakeet-ctl.py toggle")
-        print("  python parakeet-ctl.py start")
-        print("  python parakeet-ctl.py stop")
+        print("  python spk.py toggle")
+        print("  python spk.py start")
+        print("  python spk.py stop")
         sys.exit(1)
 
     command = sys.argv[1].lower()
