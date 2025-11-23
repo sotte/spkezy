@@ -35,3 +35,4 @@ This file contains things to do for this repo.
     - keep one file for now
     - heavy imports only when we need them
   - clean up reladed files
+- Copy transcript to clipboard first, then auto-type (ensures text is in clipboard history)
