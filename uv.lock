@@ -303,6 +303,18 @@ wheels = [
 ]
 
 [[package]]
+name = "basedpyright"
+version = "1.34.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nodejs-wheel-binaries" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a3/77/ded02ba2b400807b291fa2b9d29ac7f473e86a45d1f5212d8276e9029107/basedpyright-1.34.0.tar.gz", hash = "sha256:7ae3b06f644fac15fdd14a00d0d1f12f92a8205ae1609aabd5a0799b1a68be1d", size = 22803348, upload-time = "2025-11-19T14:48:16.38Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/9e/ced31964ed49f06be6197bd530958b6ddca9a079a8d7ee0ee7429cae9e27/basedpyright-1.34.0-py3-none-any.whl", hash = "sha256:e76015c1ebb671d2c6d7fef8a12bc0f1b9d15d74e17847b7b95a3a66e187c70f", size = 11865958, upload-time = "2025-11-19T14:48:13.724Z" },
+]
+
+[[package]]
 name = "bitsandbytes"
 version = "0.46.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2358,6 +2370,22 @@ wheels = [
 ]
 
 [[package]]
+name = "nodejs-wheel-binaries"
+version = "24.11.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/89/da307731fdbb05a5f640b26de5b8ac0dc463fef059162accfc89e32f73bc/nodejs_wheel_binaries-24.11.1.tar.gz", hash = "sha256:413dfffeadfb91edb4d8256545dea797c237bba9b3faefea973cde92d96bb922", size = 8059, upload-time = "2025-11-18T18:21:58.207Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/5f/be5a4112e678143d4c15264d918f9a2dc086905c6426eb44515cf391a958/nodejs_wheel_binaries-24.11.1-py2.py3-none-macosx_13_0_arm64.whl", hash = "sha256:0e14874c3579def458245cdbc3239e37610702b0aa0975c1dc55e2cb80e42102", size = 55114309, upload-time = "2025-11-18T18:21:21.697Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/1c/2e9d6af2ea32b65928c42b3e5baa7a306870711d93c3536cb25fc090a80d/nodejs_wheel_binaries-24.11.1-py2.py3-none-macosx_13_0_x86_64.whl", hash = "sha256:c2741525c9874b69b3e5a6d6c9179a6fe484ea0c3d5e7b7c01121c8e5d78b7e2", size = 55285957, upload-time = "2025-11-18T18:21:27.177Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/79/35696d7ba41b1bd35ef8682f13d46ba38c826c59e58b86b267458eb53d87/nodejs_wheel_binaries-24.11.1-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:5ef598101b0fb1c2bf643abb76dfbf6f76f1686198ed17ae46009049ee83c546", size = 59645875, upload-time = "2025-11-18T18:21:33.004Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/98/2a9694adee0af72bc602a046b0632a0c89e26586090c558b1c9199b187cc/nodejs_wheel_binaries-24.11.1-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:cde41d5e4705266688a8d8071debf4f8a6fcea264c61292782672ee75a6905f9", size = 60140941, upload-time = "2025-11-18T18:21:37.228Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/d6/573e5e2cba9d934f5f89d0beab00c3315e2e6604eb4df0fcd1d80c5a07a8/nodejs_wheel_binaries-24.11.1-py2.py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:78bc5bb889313b565df8969bb7423849a9c7fc218bf735ff0ce176b56b3e96f0", size = 61644243, upload-time = "2025-11-18T18:21:43.325Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/e6/643234d5e94067df8ce8d7bba10f3804106668f7a1050aeb10fdd226ead4/nodejs_wheel_binaries-24.11.1-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:c79a7e43869ccecab1cae8183778249cceb14ca2de67b5650b223385682c6239", size = 62225657, upload-time = "2025-11-18T18:21:47.708Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/1c/2fb05127102a80225cab7a75c0e9edf88a0a1b79f912e1e36c7c1aaa8f4e/nodejs_wheel_binaries-24.11.1-py2.py3-none-win_amd64.whl", hash = "sha256:10197b1c9c04d79403501766f76508b0dac101ab34371ef8a46fcf51773497d0", size = 41322308, upload-time = "2025-11-18T18:21:51.347Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/b7/bc0cdbc2cc3a66fcac82c79912e135a0110b37b790a14c477f18e18d90cd/nodejs_wheel_binaries-24.11.1-py2.py3-none-win_arm64.whl", hash = "sha256:376b9ea1c4bc1207878975dfeb604f7aa5668c260c6154dcd2af9d42f7734116", size = 39026497, upload-time = "2025-11-18T18:21:54.634Z" },
+]
+
+[[package]]
 name = "num2words"
 version = "0.5.14"
 source = { registry = "https://pypi.org/simple" }
@@ -2616,7 +2644,7 @@ cpu = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "pyrefly" },
+    { name = "basedpyright" },
 ]
 
 [package.metadata]
@@ -2640,7 +2668,7 @@ requires-dist = [
 provides-extras = ["cpu", "cuda"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pyrefly", specifier = ">=0.42.3" }]
+dev = [{ name = "basedpyright", specifier = ">=1.21.0" }]
 
 [[package]]
 name = "parso"
@@ -3266,22 +3294,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e8/52/d87eba7cb129b81563019d1679026e7a112ef76855d6159d24754dbd2a51/pyperclip-1.11.0.tar.gz", hash = "sha256:244035963e4428530d9e3a6101a1ef97209c6825edab1567beac148ccc1db1b6", size = 12185, upload-time = "2025-09-26T14:40:37.245Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/80/fc9d01d5ed37ba4c42ca2b55b4339ae6e200b456be3a1aaddf4a9fa99b8c/pyperclip-1.11.0-py3-none-any.whl", hash = "sha256:299403e9ff44581cb9ba2ffeed69c7aa96a008622ad0c46cb575ca75b5b84273", size = 11063, upload-time = "2025-09-26T14:40:36.069Z" },
-]
-
-[[package]]
-name = "pyrefly"
-version = "0.42.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/76/05/5ba1c4b2a935ddacbe42668f5357ca76ffb8f7b1b80361bf2c41d437cbfc/pyrefly-0.42.3.tar.gz", hash = "sha256:8ade8e2eeb6c0321c73be6d23d94ff652332939f89480d555af9081232490042", size = 3873243, upload-time = "2025-11-21T22:19:24.044Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/e1/7a1f7a7b25c1e26c5d06a6540f68dc313496fcde193abc0d46a21ebdacd4/pyrefly-0.42.3-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:c229ee029ddf6cb9c3ae0f8791ace7ee1ae3a79c0c41e1ddb5b0108c4da0a488", size = 9760264, upload-time = "2025-11-21T22:19:06.845Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/63/40c827933b9cfa1cea79ccbad2ba8aafe35d09a244044437ce957cfc6937/pyrefly-0.42.3-py3-none-macosx_11_0_arm64.whl", hash = "sha256:95a137f7f2abc9f8446154423a1c9083203b9ec1b2fe4bec8d222dc9742b1c68", size = 9369163, upload-time = "2025-11-21T22:19:08.929Z" },
-    { url = "https://files.pythonhosted.org/packages/c1/e8/3951cbd4c809689c57c3fcbccbd14c628d577406f7590389ae622fa58355/pyrefly-0.42.3-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b850e528275ed1c155f109b6710c10ffa707b11d11ce0b2583b8f000247a587", size = 9607219, upload-time = "2025-11-21T22:19:10.861Z" },
-    { url = "https://files.pythonhosted.org/packages/37/e7/cb6fcabea99cce866ff34e4dfd89542ea526deb801139ec621df5769dd77/pyrefly-0.42.3-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9d1131731b55413947d25354f82993bdfd531ec44a53536d16e623aa310f17e0", size = 10441159, upload-time = "2025-11-21T22:19:13.024Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/0f/1731adc52cf96c6422017ca00c9ce6e57efb594580252a752ed54aa1cc8c/pyrefly-0.42.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:39bc7bb1f435bcdfc860126528ac7059669df659ca1fcd7cfbc6ea0f42c8b312", size = 10063842, upload-time = "2025-11-21T22:19:15.223Z" },
-    { url = "https://files.pythonhosted.org/packages/ce/d4/ca1a1cf2e23ecf7b0c763367540efdfe909fc160d6f346dc9074e68ca2e2/pyrefly-0.42.3-py3-none-win32.whl", hash = "sha256:36e9977a77c2a1a334cbaa8cb442fa3ffcb54ee42ebf269b8ba987efd84398f9", size = 9537003, upload-time = "2025-11-21T22:19:17.553Z" },
-    { url = "https://files.pythonhosted.org/packages/44/68/303b4bdf3c54bcad9b0691ffeac8d342cc25e227f72dab1fd1b219f13ec8/pyrefly-0.42.3-py3-none-win_amd64.whl", hash = "sha256:99a3fa6e67083b9687e00d34ef4fdb4e990f27cc2808f51140243d6e0daa19be", size = 10160182, upload-time = "2025-11-21T22:19:19.723Z" },
-    { url = "https://files.pythonhosted.org/packages/44/2f/a0e94ed2683b917c9b3e48503d62ecfcc525d36fc549b8b9c6fc86ac5b12/pyrefly-0.42.3-py3-none-win_arm64.whl", hash = "sha256:cbac47a6c8f7741dd42178a39732609afa5e99e8303adca24a77603e18954ed4", size = 9763227, upload-time = "2025-11-21T22:19:21.814Z" },
 ]
 
 [[package]]
