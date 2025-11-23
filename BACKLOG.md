@@ -4,8 +4,6 @@ This file contains things to do for this repo.
 
 ## TODO
 
-- Clean up python code
-  - add type annotations, use `pyrefly` as type checker
 - Try with more modern python: 3.13
 
 ## DONE
@@ -37,3 +35,4 @@ This file contains things to do for this repo.
   - clean up reladed files
 - Copy transcript to clipboard first, then auto-type (ensures text is in clipboard history)
 - ruff: add make targets to autoformat, fix, and check code
+- types: use pyrefly as type checker, add make target, add type annotations where practical
