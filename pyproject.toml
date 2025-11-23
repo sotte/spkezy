@@ -47,6 +47,14 @@ torchvision = [
 [tool.hatch.build]
 include = ["*.py", "sound.mp3"]
 
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = []
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

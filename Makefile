@@ -41,6 +41,24 @@ stop: ## Stop recording and transcribe
 	$(PYTHON) spk.py stop
 
 ################################################################################
+##@ Code Quality
+lint: ## Run ruff linter (check only)
+	$(UV) run ruff check .
+
+format: ## Run ruff formatter (check only)
+	$(UV) run ruff format --check .
+
+fix: ## Run ruff linter and apply fixes
+	$(UV) run ruff check --fix .
+
+fmt: ## Run ruff formatter and apply changes
+	$(UV) run ruff format .
+
+check: ## Run all checks (lint + format check)
+	$(UV) run ruff check .
+	$(UV) run ruff format --check .
+
+################################################################################
 ##@ Utilities
 .PHONY: help
 help: ## Show this help message
