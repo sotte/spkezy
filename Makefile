@@ -58,6 +58,9 @@ check: ## Run all checks (lint + format check)
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
 
+typecheck: ## Run pyrefly type checker
+	$(UV) run --group dev pyrefly check .
+
 ################################################################################
 ##@ Utilities
 .PHONY: help

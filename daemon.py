@@ -16,6 +16,7 @@ import warnings
 import wave
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import structlog
 
@@ -278,7 +279,7 @@ def auto_type_text(text: str, log=None):
 
 ########################################################################################
 # Model Loading
-def load_model(force_cpu: bool, log):
+def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
     """Load NeMo ASR model with lazy imports."""
     log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
 
@@ -318,8 +319,8 @@ def load_model(force_cpu: bool, log):
     t_start = time.perf_counter()
     model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
     # Move to device
-    model.to(device)
-    model.eval()
+    model.to(device)  # type: ignore[attr-defined]
+    model.eval()  # type: ignore[attr-defined]
     t_end = time.perf_counter()
 
     log.info("model_loaded", device=device, load_time_seconds=round(t_end - t_start, 1))
@@ -332,11 +333,11 @@ def load_model(force_cpu: bool, log):
 class UnixSocketServer:
     """Unix socket server for daemon control."""
 
-    def __init__(self, socket_path: Path, state_manager: StateManager, log):
+    def __init__(self, socket_path: Path, state_manager: StateManager, log: Any):
         self.socket_path = socket_path
         self.state_manager = state_manager
         self.log = log
-        self.sock = None
+        self.sock: socket.socket | None = None
 
     def start(self):
         """Set up and start the socket server."""
@@ -369,6 +370,7 @@ class UnixSocketServer:
 
     def _server_loop(self):
         """Accept connections and handle commands in separate threads."""
+        assert self.sock is not None
         while not self.state_manager.is_shutdown_requested():
             try:
                 self.sock.settimeout(0.5)
