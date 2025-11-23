@@ -58,8 +58,8 @@ check: ## Run all checks (lint + format check)
 	$(UV) run ruff check .
 	$(UV) run ruff format --check .
 
-typecheck: ## Run pyrefly type checker
-	$(UV) run --group dev pyrefly check .
+typecheck: ## Run basedpyright type checker
+	$(UV) run --group dev basedpyright .
 
 ################################################################################
 ##@ Utilities
