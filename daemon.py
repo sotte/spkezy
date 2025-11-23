@@ -284,14 +284,21 @@ def load_model(force_cpu: bool, debug: bool, log):
     class SilenceLibraries:
         def __enter__(self):
             if not debug:
+                # Redirect stderr to devnull
                 self.old_stderr = sys.stderr
-                sys.stderr = open(os.devnull, 'w')
+                self.devnull = open(os.devnull, 'w')
+                sys.stderr = self.devnull
+
+                # Also silence Python logging (used by NeMo)
+                self.old_log_level = logging.root.level
+                logging.root.setLevel(logging.CRITICAL + 1)  # Silence all logging
             return self
 
         def __exit__(self, *args):
             if not debug:
-                sys.stderr.close()
                 sys.stderr = self.old_stderr
+                self.devnull.close()
+                logging.root.setLevel(self.old_log_level)
 
     # Suppress warnings
     warnings.filterwarnings("ignore")
@@ -478,26 +485,50 @@ def record_audio(
     state_manager: StateManager,
     sample_rate: int = 16000,
     device_index: int | None = None,
+    debug: bool = False,
     log=None,
 ) -> bytes | None:
     """Record audio until stop event or shutdown."""
     import pyaudio  # Lazy import
 
-    p = pyaudio.PyAudio()
+    # Silence ALSA/JACK errors in non-debug mode
+    old_stderr = None
+    devnull = None
+    if not debug:
+        old_stderr = sys.stderr
+        devnull = open(os.devnull, 'w')
+        sys.stderr = devnull
 
     try:
-        stream = p.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=sample_rate,
-            input=True,
-            input_device_index=device_index,
-            frames_per_buffer=1024,
-        )
+        p = pyaudio.PyAudio()
+
+        try:
+            stream = p.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=sample_rate,
+                input=True,
+                input_device_index=device_index,
+                frames_per_buffer=1024,
+            )
+        except Exception as e:
+            if log:
+                log.error("audio_stream_open_failed", error=str(e))
+            p.terminate()
+            return None
+        finally:
+            # Restore stderr after opening stream (ALSA errors happen here)
+            if not debug and old_stderr:
+                sys.stderr = old_stderr
+                if devnull:
+                    devnull.close()
     except Exception as e:
+        if not debug and old_stderr:
+            sys.stderr = old_stderr
+            if devnull:
+                devnull.close()
         if log:
-            log.error("audio_stream_open_failed", error=str(e))
-        p.terminate()
+            log.error("pyaudio_init_failed", error=str(e))
         return None
 
     frames = []
@@ -651,6 +682,7 @@ def main():
                 state_manager,
                 sample_rate=16000,
                 device_index=args.input_device,
+                debug=args.debug,
                 log=log,
             )
 
