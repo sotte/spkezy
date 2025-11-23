@@ -276,20 +276,34 @@ def auto_type_text(text: str, log=None):
 
 # ===== Model Loading =====
 
-def load_model(force_cpu: bool, log):
+def load_model(force_cpu: bool, debug: bool, log):
     """Load NeMo ASR model with lazy imports."""
     log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
 
-    # Lazy imports - only load when actually starting daemon
-    import torch
-    import nemo.collections.asr as nemo_asr
+    # Context manager to silence library output in non-debug mode
+    class SilenceLibraries:
+        def __enter__(self):
+            if not debug:
+                self.old_stderr = sys.stderr
+                sys.stderr = open(os.devnull, 'w')
+            return self
+
+        def __exit__(self, *args):
+            if not debug:
+                sys.stderr.close()
+                sys.stderr = self.old_stderr
 
     # Suppress warnings
     warnings.filterwarnings("ignore")
 
-    # Detect device
-    use_cuda = torch.cuda.is_available() and not force_cpu
-    device = "cuda" if use_cuda else "cpu"
+    # Lazy imports - only load when actually starting daemon (silenced if not debug)
+    with SilenceLibraries():
+        import torch
+        import nemo.collections.asr as nemo_asr
+
+        # Detect device
+        use_cuda = torch.cuda.is_available() and not force_cpu
+        device = "cuda" if use_cuda else "cpu"
 
     # Log device info
     if torch.cuda.is_available():
@@ -302,14 +316,14 @@ def load_model(force_cpu: bool, log):
     else:
         log.info("device_detected", device="cpu", note="No CUDA GPU detected")
 
-    # Load model
+    # Load model (silenced if not debug)
     t_start = time.perf_counter()
-    model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
+    with SilenceLibraries():
+        model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
+        # Move to device
+        model.to(device)
+        model.eval()
     t_end = time.perf_counter()
-
-    # Move to device
-    model.to(device)
-    model.eval()
 
     log.info("model_loaded", device=device, load_time_seconds=round(t_end - t_start, 1))
 
@@ -607,7 +621,7 @@ def main():
 
     # Load model
     try:
-        model, device = load_model(args.cpu, log)
+        model, device = load_model(args.cpu, args.debug, log)
     except Exception as e:
         log.error("model_load_failed", error=str(e))
         return 1
