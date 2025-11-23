@@ -668,6 +668,10 @@ def main():
                 state_manager.set_state(DaemonState.IDLE)
                 continue
 
+            # Notify user that transcription is starting
+            send_notification("Transcribing...", "Processing audio", not args.no_notifications, log)
+            play_sound(log)
+
             # Save to temp file
             try:
                 temp_path = save_audio_to_wav(audio_data)
