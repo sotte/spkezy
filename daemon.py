@@ -9,7 +9,6 @@ import structlog
 import os
 import threading
 import signal
-import atexit
 from enum import Enum
 import subprocess
 import time
@@ -19,8 +18,9 @@ import json
 import wave
 import tempfile
 
-# ===== Daemon State =====
 
+########################################################################################
+# STATE MANAGEMENT
 class DaemonState(Enum):
     IDLE = "idle"
     RECORDING = "recording"
@@ -74,8 +74,8 @@ class StateManager:
         return False
 
 
-# ===== CLI Arguments =====
-
+########################################################################################
+# CLI Arguments
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -89,7 +89,8 @@ def parse_arguments():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "-d", "--debug",
+        "-d",
+        "--debug",
         action="store_true",
         help="Verbose diagnostics: device, timings, GPU memory",
     )
@@ -149,8 +150,8 @@ def get_socket_path(args_socket_path: str | None) -> Path:
     return Path("/tmp") / "spk-daemon.sock"
 
 
-# ===== Logging Configuration =====
-
+########################################################################################
+# Logging Configuration
 def configure_logging(debug: bool, log_file: str | None):
     """Configure structlog for console and optional file output."""
     processors = [
@@ -158,7 +159,9 @@ def configure_logging(debug: bool, log_file: str | None):
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         # Use human-readable console output for stderr, JSON for file logging
-        structlog.dev.ConsoleRenderer() if not log_file else structlog.processors.JSONRenderer(),
+        structlog.dev.ConsoleRenderer()
+        if not log_file
+        else structlog.processors.JSONRenderer(),
     ]
 
     # Set minimum log level
@@ -217,8 +220,8 @@ def setup_signal_handlers(state_manager: StateManager):
     sys.excepthook = no_kbi_traceback
 
 
-# ===== Notifications & Audio Feedback =====
-
+########################################################################################
+# Notifications & Audio Feedback
 def send_notification(title: str, message: str, enabled: bool = True, log=None):
     """Send desktop notification via notify-send."""
     if not enabled:
@@ -270,12 +273,14 @@ def auto_type_text(text: str, log=None):
         raise
     except subprocess.CalledProcessError as e:
         if log:
-            log.warning("wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode())
+            log.warning(
+                "wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode()
+            )
         raise
 
 
-# ===== Model Loading =====
-
+########################################################################################
+# Model Loading
 def load_model(force_cpu: bool, debug: bool, log):
     """Load NeMo ASR model with lazy imports."""
     log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
@@ -286,7 +291,7 @@ def load_model(force_cpu: bool, debug: bool, log):
             if not debug:
                 # Redirect stderr to devnull
                 self.old_stderr = sys.stderr
-                self.devnull = open(os.devnull, 'w')
+                self.devnull = open(os.devnull, "w")
                 sys.stderr = self.devnull
 
                 # Also silence Python logging (used by NeMo)
@@ -317,9 +322,19 @@ def load_model(force_cpu: bool, debug: bool, log):
         gpu_name = torch.cuda.get_device_name(0)
         if use_cuda:
             cap = torch.cuda.get_device_capability()
-            log.info("device_detected", device="cuda", gpu=gpu_name, cuda_capability=f"{cap[0]}.{cap[1]}")
+            log.info(
+                "device_detected",
+                device="cuda",
+                gpu=gpu_name,
+                cuda_capability=f"{cap[0]}.{cap[1]}",
+            )
         else:
-            log.info("device_detected", device="cpu", note="GPU available but using CPU (--cpu flag)", gpu=gpu_name)
+            log.info(
+                "device_detected",
+                device="cpu",
+                note="GPU available but using CPU (--cpu flag)",
+                gpu=gpu_name,
+            )
     else:
         log.info("device_detected", device="cpu", note="No CUDA GPU detected")
 
@@ -337,8 +352,8 @@ def load_model(force_cpu: bool, debug: bool, log):
     return model, device
 
 
-# ===== Socket Server =====
-
+########################################################################################
+# Socket Server
 class UnixSocketServer:
     """Unix socket server for daemon control."""
 
@@ -357,7 +372,9 @@ class UnixSocketServer:
                 test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 test_sock.connect(str(self.socket_path))
                 test_sock.close()
-                self.log.error("daemon_already_running", socket_path=str(self.socket_path))
+                self.log.error(
+                    "daemon_already_running", socket_path=str(self.socket_path)
+                )
                 return False
             except ConnectionRefusedError:
                 # Stale socket, remove it
@@ -385,9 +402,7 @@ class UnixSocketServer:
                 client_sock, _ = self.sock.accept()
                 # Handle each command in a separate thread
                 threading.Thread(
-                    target=self._handle_command,
-                    args=(client_sock,),
-                    daemon=True
+                    target=self._handle_command, args=(client_sock,), daemon=True
                 ).start()
             except socket.timeout:
                 continue
@@ -437,7 +452,10 @@ class UnixSocketServer:
                 self.log.info("command_start")
                 return {"status": "ok", "state": "recording"}
             else:
-                return {"status": "error", "message": f"Cannot start, currently {current_state.value}"}
+                return {
+                    "status": "error",
+                    "message": f"Cannot start, currently {current_state.value}",
+                }
 
         elif cmd == "stop":
             if current_state == DaemonState.RECORDING:
@@ -445,7 +463,10 @@ class UnixSocketServer:
                 self.log.info("command_stop")
                 return {"status": "ok", "state": "transcribing"}
             else:
-                return {"status": "error", "message": f"Cannot stop, currently {current_state.value}"}
+                return {
+                    "status": "error",
+                    "message": f"Cannot stop, currently {current_state.value}",
+                }
 
         elif cmd == "toggle":
             if current_state == DaemonState.IDLE:
@@ -457,7 +478,10 @@ class UnixSocketServer:
                 self.log.info("command_toggle", action="stopped")
                 return {"status": "ok", "action": "stopped", "state": "transcribing"}
             else:
-                return {"status": "error", "message": f"Cannot toggle while {current_state.value}"}
+                return {
+                    "status": "error",
+                    "message": f"Cannot toggle while {current_state.value}",
+                }
 
         elif cmd == "status":
             return {"status": "ok", "state": current_state.value}
@@ -479,8 +503,8 @@ class UnixSocketServer:
         self.log.info("socket_cleanup_complete")
 
 
-# ===== Audio Recording =====
-
+########################################################################################
+# Audio Recording
 def record_audio(
     state_manager: StateManager,
     sample_rate: int = 16000,
@@ -496,7 +520,7 @@ def record_audio(
     devnull = None
     if not debug:
         old_stderr = sys.stderr
-        devnull = open(os.devnull, 'w')
+        devnull = open(os.devnull, "w")
         sys.stderr = devnull
 
     try:
@@ -572,8 +596,8 @@ def save_audio_to_wav(audio_data: bytes, sample_rate: int = 16000) -> str:
     return tmp.name
 
 
-# ===== Transcription =====
-
+########################################################################################
+# Transcription
 def transcribe_audio(model, audio_path: str, device: str, log) -> str:
     """Transcribe audio file using NeMo model."""
     log.info("transcription_started")
@@ -584,12 +608,18 @@ def transcribe_audio(model, audio_path: str, device: str, log) -> str:
 
         if isinstance(result, list) and len(result) > 0:
             first = result[0]
-            transcript = getattr(first, "text", first if isinstance(first, str) else str(first))
+            transcript = getattr(
+                first, "text", first if isinstance(first, str) else str(first)
+            )
         else:
             transcript = str(result)
 
         t_end = time.perf_counter()
-        log.info("transcription_completed", length=len(transcript), time_seconds=round(t_end - t_start, 3))
+        log.info(
+            "transcription_completed",
+            length=len(transcript),
+            time_seconds=round(t_end - t_start, 3),
+        )
 
         return transcript
 
@@ -628,8 +658,8 @@ def copy_to_clipboard(text: str, log):
         log.warning("clipboard_failed", error=str(e))
 
 
-# ===== Main =====
-
+########################################################################################
+# MAIN
 def main():
     args = parse_arguments()
 
@@ -662,7 +692,9 @@ def main():
     if not socket_server.start():
         return 1
 
-    send_notification("spk Ready", f"Model loaded on {device}", not args.no_notifications, log)
+    send_notification(
+        "spk Ready", f"Model loaded on {device}", not args.no_notifications, log
+    )
 
     log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 
@@ -674,7 +706,9 @@ def main():
                 break
 
             log.info("recording_triggered")
-            send_notification("Recording", "Listening...", not args.no_notifications, log)
+            send_notification(
+                "Recording", "Listening...", not args.no_notifications, log
+            )
             play_sound(log)
 
             # Record audio
@@ -724,7 +758,9 @@ def main():
 
             # Notification with preview
             preview = transcript[:80] + "..." if len(transcript) > 80 else transcript
-            send_notification("Transcription Complete", preview, not args.no_notifications, log)
+            send_notification(
+                "Transcription Complete", preview, not args.no_notifications, log
+            )
 
             # Handle output (auto-type or clipboard)
             handle_transcript_output(
