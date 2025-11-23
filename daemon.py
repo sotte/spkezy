@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """spk - Automatic Speech Recognition Daemon"""
 
-import sys
 import argparse
-from pathlib import Path
+import json
 import logging
-import structlog
 import os
-import threading
 import signal
-from enum import Enum
+import socket
 import subprocess
+import sys
+import tempfile
+import threading
 import time
 import warnings
-import socket
-import json
 import wave
-import tempfile
+from enum import Enum
+from pathlib import Path
+
+import structlog
 
 
 ########################################################################################
@@ -159,9 +160,7 @@ def configure_logging(debug: bool, log_file: str | None):
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         # Use human-readable console output for stderr, JSON for file logging
-        structlog.dev.ConsoleRenderer()
-        if not log_file
-        else structlog.processors.JSONRenderer(),
+        structlog.dev.ConsoleRenderer() if not log_file else structlog.processors.JSONRenderer(),
     ]
 
     # Set minimum log level
@@ -273,9 +272,7 @@ def auto_type_text(text: str, log=None):
         raise
     except subprocess.CalledProcessError as e:
         if log:
-            log.warning(
-                "wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode()
-            )
+            log.warning("wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode())
         raise
 
 
@@ -289,8 +286,8 @@ def load_model(force_cpu: bool, log):
     warnings.filterwarnings("ignore")
 
     # Lazy imports - only load when actually starting daemon
-    import torch
     import nemo.collections.asr as nemo_asr
+    import torch
 
     # Detect device
     use_cuda = torch.cuda.is_available() and not force_cpu
@@ -350,9 +347,7 @@ class UnixSocketServer:
                 test_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 test_sock.connect(str(self.socket_path))
                 test_sock.close()
-                self.log.error(
-                    "daemon_already_running", socket_path=str(self.socket_path)
-                )
+                self.log.error("daemon_already_running", socket_path=str(self.socket_path))
                 return False
             except ConnectionRefusedError:
                 # Stale socket, remove it
@@ -382,7 +377,7 @@ class UnixSocketServer:
                 threading.Thread(
                     target=self._handle_command, args=(client_sock,), daemon=True
                 ).start()
-            except socket.timeout:
+            except TimeoutError:
                 continue
             except Exception as e:
                 if not self.state_manager.is_shutdown_requested():
@@ -562,9 +557,7 @@ def transcribe_audio(model, audio_path: str, device: str, log) -> str:
 
         if isinstance(result, list) and len(result) > 0:
             first = result[0]
-            transcript = getattr(
-                first, "text", first if isinstance(first, str) else str(first)
-            )
+            transcript = getattr(first, "text", first if isinstance(first, str) else str(first))
         else:
             transcript = str(result)
 
@@ -646,9 +639,7 @@ def main():
     if not socket_server.start():
         return 1
 
-    send_notification(
-        "spk Ready", f"Model loaded on {device}", not args.no_notifications, log
-    )
+    send_notification("spk Ready", f"Model loaded on {device}", not args.no_notifications, log)
 
     log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 
@@ -660,9 +651,7 @@ def main():
                 break
 
             log.info("recording_triggered")
-            send_notification(
-                "Recording", "Listening...", not args.no_notifications, log
-            )
+            send_notification("Recording", "Listening...", not args.no_notifications, log)
             play_sound(log)
 
             # Record audio
@@ -711,9 +700,7 @@ def main():
 
             # Notification with preview
             preview = transcript[:80] + "..." if len(transcript) > 80 else transcript
-            send_notification(
-                "Transcription Complete", preview, not args.no_notifications, log
-            )
+            send_notification("Transcription Complete", preview, not args.no_notifications, log)
 
             # Handle output (auto-type or clipboard)
             handle_transcript_output(

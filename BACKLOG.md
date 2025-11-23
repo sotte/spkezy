@@ -36,3 +36,4 @@ This file contains things to do for this repo.
     - heavy imports only when we need them
   - clean up reladed files
 - Copy transcript to clipboard first, then auto-type (ensures text is in clipboard history)
+- ruff: add make targets to autoformat, fix, and check code

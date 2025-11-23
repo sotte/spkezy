@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """spk Control Client - Send commands to the daemon via Unix socket"""
 
-import sys
+import json
 import os
 import socket
-import json
+import sys
 from pathlib import Path
 
 
