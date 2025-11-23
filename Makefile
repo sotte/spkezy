@@ -61,6 +61,10 @@ check: ## Run all checks (lint + format check)
 typecheck: ## Run basedpyright type checker
 	$(UV) run --group dev basedpyright .
 
+chores: check typecheck ## Run all code quality checks (lint, format, typecheck)
+	@echo ""
+	@echo "✅ All checks passed!"
+
 ################################################################################
 ##@ Utilities
 .PHONY: help
