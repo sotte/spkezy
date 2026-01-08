@@ -3,7 +3,7 @@
 import json
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -28,7 +28,7 @@ def record_stats(
     stats_dir = base_path / "stats"
     transcripts_dir = base_path / "transcripts"
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     date_str = now.strftime("%Y-%m-%d")
 
@@ -109,11 +109,13 @@ def calculate_streaks(dates_with_activity: set[str]) -> tuple[int, int]:
     if not dates_with_activity:
         return 0, 0
 
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
 
-    # Current streak: count consecutive days backwards from today (or yesterday if today has no activity)
+    # Current streak: count consecutive days backwards from today
+    # (or yesterday if today has no activity)
     current = 0
-    check = today if today.strftime("%Y-%m-%d") in dates_with_activity else today - timedelta(days=1)
+    today_str = today.strftime("%Y-%m-%d")
+    check = today if today_str in dates_with_activity else today - timedelta(days=1)
     while check.strftime("%Y-%m-%d") in dates_with_activity:
         current += 1
         check -= timedelta(days=1)
@@ -165,7 +167,7 @@ def show_stats() -> None:
     console.print()
 
     # Build 52-week heatmap grid
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     # Start from Sunday of current week, go back 51 weeks
     days_since_sunday = (today.weekday() + 1) % 7
     current_sunday = today - timedelta(days=days_since_sunday)
