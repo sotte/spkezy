@@ -166,12 +166,21 @@ def show_stats() -> None:
     console.print("[bold]Parakeet Dictation Activity[/bold]")
     console.print()
 
-    # Build 52-week heatmap grid
+    # Build 12-month heatmap grid (approximately 52 weeks but aligned to months)
     today = datetime.now(UTC).date()
-    # Start from Sunday of current week, go back 51 weeks
-    days_since_sunday = (today.weekday() + 1) % 7
-    current_sunday = today - timedelta(days=days_since_sunday)
-    grid_start = current_sunday - timedelta(weeks=51)
+    # Go back ~12 months: start from the 1st of the month, 11 months ago
+    start_month = today.month - 11
+    start_year = today.year
+    if start_month <= 0:
+        start_month += 12
+        start_year -= 1
+    grid_start_date = today.replace(year=start_year, month=start_month, day=1)
+    # Find the Sunday before or on grid_start_date
+    days_to_sunday = (grid_start_date.weekday() + 1) % 7
+    grid_start = grid_start_date - timedelta(days=days_to_sunday)
+    # Calculate number of weeks from grid_start to today
+    days_total = (today - grid_start).days
+    num_weeks = (days_total // 7) + 1
 
     intensity_chars = [" ", ".", ":", "+", "#"]
     intensity_colors = ["bright_black", "green", "green", "bright_green", "bold bright_green"]
@@ -205,20 +214,20 @@ def show_stats() -> None:
     ]
     month_positions: list[tuple[int, str]] = []  # (week_index, month_name)
     last_month = -1
-    for week in range(52):
+    for week in range(num_weeks):
         week_date = grid_start + timedelta(weeks=week, days=1)
         month = week_date.month
         if month != last_month:
             month_positions.append((week, month_names[month - 1]))
             last_month = month
 
-    # Build the month label string (52 chars, one per week column)
+    # Build the month label string (num_weeks chars, one per week column)
     # Only place label if there's room (no overlap with previous label)
-    month_chars = [" "] * 52
+    month_chars = [" "] * num_weeks
     last_end = -1
     for pos, name in month_positions:
         # Only place if no overlap and full name fits
-        if pos > last_end and pos + len(name) <= 52:
+        if pos > last_end and pos + len(name) <= num_weeks:
             for i, char in enumerate(name):
                 month_chars[pos + i] = char
             last_end = pos + len(name)
@@ -228,19 +237,23 @@ def show_stats() -> None:
     month_row.append("".join(month_chars), style="dim")
     console.print(month_row)
 
-    # Rows: Mon-Sun (0-6), Cols: 52 weeks
+    # Rows: Mon-Sun (0-6), Cols: num_weeks
     day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     for day_idx, day_label in enumerate(day_labels):
         row = Text()
         row.append(f"{day_label:3} ", style="dim")
 
-        for week in range(52):
+        for week in range(num_weeks):
             # grid_start is a Sunday, so +1 for Mon, +2 for Tue, etc.
             day_date = grid_start + timedelta(weeks=week, days=day_idx + 1)
-            date_str = day_date.strftime("%Y-%m-%d")
-            count = by_day.get(date_str, DayStats(date_str)).count
-            intensity = get_intensity(count)
-            row.append(intensity_chars[intensity], style=intensity_colors[intensity])
+            # Don't show future dates
+            if day_date > today:
+                row.append(" ")
+            else:
+                date_str = day_date.strftime("%Y-%m-%d")
+                count = by_day.get(date_str, DayStats(date_str)).count
+                intensity = get_intensity(count)
+                row.append(intensity_chars[intensity], style=intensity_colors[intensity])
 
         console.print(row)
 
