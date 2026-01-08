@@ -20,6 +20,8 @@ from typing import Any
 
 import structlog
 
+from stats import record_stats
+
 
 ########################################################################################
 # STATE MANAGEMENT
@@ -656,6 +658,9 @@ def main():
             send_notification("Recording", "Listening...", not args.no_notifications, log)
             play_sound(log)
 
+            # Track recording start time for stats
+            recording_start_time = time.perf_counter()
+
             # Record audio
             audio_data = record_audio(
                 state_manager,
@@ -667,6 +672,9 @@ def main():
             if not audio_data or state_manager.is_shutdown_requested():
                 state_manager.set_state(DaemonState.IDLE)
                 continue
+
+            # Calculate recording duration for stats
+            recording_duration_ms = int((time.perf_counter() - recording_start_time) * 1000)
 
             # Notify user that transcription is starting
             send_notification("Transcribing...", "Processing audio", not args.no_notifications, log)
@@ -683,8 +691,14 @@ def main():
             # Transcribe
             state_manager.set_state(DaemonState.TRANSCRIBING)
 
+            # Track transcription start time for stats
+            transcription_start_time = time.perf_counter()
+
             try:
                 transcript = transcribe_audio(model, temp_path, device, log)
+                transcription_duration_ms = int(
+                    (time.perf_counter() - transcription_start_time) * 1000
+                )
             except Exception as e:
                 log.error("transcription_error", error=str(e))
                 os.unlink(temp_path)
@@ -715,6 +729,17 @@ def main():
                 use_clipboard=not args.no_clipboard,
                 log=log,
             )
+
+            # Record stats
+            try:
+                record_stats(
+                    recording_duration_ms=recording_duration_ms,
+                    transcription_duration_ms=transcription_duration_ms,
+                    transcript=transcript,
+                    device=device,
+                )
+            except Exception as e:
+                log.warning("stats_recording_failed", error=str(e))
 
             # Return to idle
             state_manager.set_state(DaemonState.IDLE)
