@@ -23,6 +23,12 @@ daemon: ## Start daemon
 daemon-debug: ## Start daemon with debug output
 	$(PYTHON) daemon.py --debug
 
+daemon-clipboard: ## Start daemon (clipboard only, no auto-type)
+	$(PYTHON) daemon.py --no-auto-type
+
+daemon-autopaste: ## Start daemon with auto-paste enabled
+	$(PYTHON) daemon.py
+
 shutdown: ## Shutdown daemon
 	$(PYTHON) spk.py shutdown
 
@@ -39,6 +45,9 @@ start: ## Start recording
 
 stop: ## Stop recording and transcribe
 	$(PYTHON) spk.py stop
+
+stats: ## Show usage statistics and activity heatmap
+	$(PYTHON) spk.py stats
 
 ################################################################################
 ##@ Code Quality

@@ -51,6 +51,20 @@ def send_command(command: str, socket_path: Path) -> dict:
         sys.exit(1)
 
 
+def handle_stats_command():
+    """Handle the stats command (doesn't require daemon)."""
+    # Late import to avoid slow startup for other commands
+    from stats import clear_stats, export_stats_json, show_stats
+
+    if "--json" in sys.argv:
+        print(export_stats_json())
+    elif "--clear" in sys.argv:
+        clear_stats()
+        print("Stats cleared")
+    else:
+        show_stats()
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: spk.py <command>")
@@ -61,14 +75,22 @@ def main():
         print("  stop      - Stop recording and transcribe")
         print("  status    - Check daemon status")
         print("  shutdown  - Shutdown the daemon")
+        print("  stats     - Show usage statistics and activity heatmap")
+        print("    --json  - Export stats as JSON")
+        print("    --clear - Clear all stats")
         print("")
         print("Example:")
         print("  python spk.py toggle")
-        print("  python spk.py start")
-        print("  python spk.py stop")
+        print("  python spk.py stats")
         sys.exit(1)
 
     command = sys.argv[1].lower()
+
+    # Stats command doesn't need daemon
+    if command == "stats":
+        handle_stats_command()
+        return
+
     socket_path = get_socket_path()
 
     response = send_command(command, socket_path)
