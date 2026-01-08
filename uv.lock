@@ -2629,6 +2629,7 @@ dependencies = [
     { name = "onnx" },
     { name = "pyaudio" },
     { name = "pyperclip" },
+    { name = "rich" },
     { name = "structlog" },
 ]
 
@@ -2654,6 +2655,7 @@ requires-dist = [
     { name = "onnx", specifier = "<1.18.0" },
     { name = "pyaudio" },
     { name = "pyperclip" },
+    { name = "rich" },
     { name = "structlog" },
     { name = "torch", marker = "extra == 'cpu'", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torch", marker = "extra != 'cpu' and extra == 'cuda'", index = "https://download.pytorch.org/whl/cu121" },
