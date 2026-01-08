@@ -62,7 +62,15 @@ def handle_stats_command():
         clear_stats()
         print("Stats cleared")
     else:
-        show_stats()
+        # Parse -n argument for number of months
+        num_months = 3  # default
+        for i, arg in enumerate(sys.argv):
+            if arg == "-n" and i + 1 < len(sys.argv):
+                try:
+                    num_months = int(sys.argv[i + 1])
+                except ValueError:
+                    pass
+        show_stats(num_months=num_months)
 
 
 def main():
@@ -76,6 +84,7 @@ def main():
         print("  status    - Check daemon status")
         print("  shutdown  - Shutdown the daemon")
         print("  stats     - Show usage statistics and activity heatmap")
+        print("    -n N    - Show last N months (default: 3)")
         print("    --json  - Export stats as JSON")
         print("    --clear - Clear all stats")
         print("")

@@ -148,7 +148,7 @@ def format_duration(ms: int) -> str:
     return f"{hours}h {mins}m"
 
 
-def show_stats() -> None:
+def show_stats(num_months: int = 3) -> None:
     """Render the stats display using Rich (late import)."""
     from rich.console import Console
     from rich.table import Table
@@ -166,21 +166,24 @@ def show_stats() -> None:
     console.print("[bold]Parakeet Dictation Activity[/bold]")
     console.print()
 
-    # Build 12-month heatmap grid (approximately 52 weeks but aligned to months)
+    # Build n-month heatmap grid
     today = datetime.now(UTC).date()
-    # Go back ~12 months: start from the 1st of the month, 11 months ago
-    start_month = today.month - 11
+    # Go back n-1 months: start from the 1st of that month
+    start_month = today.month - (num_months - 1)
     start_year = today.year
-    if start_month <= 0:
+    while start_month <= 0:
         start_month += 12
         start_year -= 1
-    grid_start_date = today.replace(year=start_year, month=start_month, day=1)
+    grid_start_date = datetime(start_year, start_month, 1).date()
     # Find the Sunday before or on grid_start_date
     days_to_sunday = (grid_start_date.weekday() + 1) % 7
     grid_start = grid_start_date - timedelta(days=days_to_sunday)
-    # Calculate number of weeks from grid_start to today
-    days_total = (today - grid_start).days
-    num_weeks = (days_total // 7) + 1
+    # Calculate number of weeks from grid_start to end of current week
+    # Add 2 extra weeks to ensure the current month label has room to display
+    days_since_sunday = (today.weekday() + 1) % 7
+    end_of_week = today + timedelta(days=6 - days_since_sunday)
+    days_total = (end_of_week - grid_start).days
+    num_weeks = (days_total // 7) + 3  # +3 for month label room
 
     intensity_chars = [" ", ".", ":", "+", "#"]
     intensity_colors = ["bright_black", "green", "green", "bright_green", "bold bright_green"]
