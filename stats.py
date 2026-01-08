@@ -187,6 +187,47 @@ def show_stats() -> None:
             return 3
         return 4
 
+    # Build month labels for x-axis
+    # Show month name at first week of each month, spaces elsewhere
+    month_names = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
+    month_positions: list[tuple[int, str]] = []  # (week_index, month_name)
+    last_month = -1
+    for week in range(52):
+        week_date = grid_start + timedelta(weeks=week, days=1)
+        month = week_date.month
+        if month != last_month:
+            month_positions.append((week, month_names[month - 1]))
+            last_month = month
+
+    # Build the month label string (52 chars, one per week column)
+    # Only place label if there's room (no overlap with previous label)
+    month_chars = [" "] * 52
+    last_end = -1
+    for pos, name in month_positions:
+        # Only place if no overlap and full name fits
+        if pos > last_end and pos + len(name) <= 52:
+            for i, char in enumerate(name):
+                month_chars[pos + i] = char
+            last_end = pos + len(name)
+
+    month_row = Text()
+    month_row.append("    ", style="dim")  # Align with day labels (3 chars + space)
+    month_row.append("".join(month_chars), style="dim")
+    console.print(month_row)
+
     # Rows: Mon-Sun (0-6), Cols: 52 weeks
     day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     for day_idx, day_label in enumerate(day_labels):
