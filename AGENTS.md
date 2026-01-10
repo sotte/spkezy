@@ -21,3 +21,6 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 Note: Always use `bunx @fission-ai/openspec@latest` instead of plain `openspec` on the CLI.
 
+## DEV Conventions
+
+- Use Conventional Commit messages for any commits.
