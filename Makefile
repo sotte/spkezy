@@ -23,12 +23,6 @@ daemon: ## Start daemon
 daemon-debug: ## Start daemon with debug output
 	$(PYTHON) spkezy_daemon.py --debug
 
-daemon-clipboard: ## Start daemon (clipboard only, no auto-type)
-	$(PYTHON) spkezy_daemon.py --no-auto-type
-
-daemon-autopaste: ## Start daemon with auto-paste enabled
-	$(PYTHON) spkezy_daemon.py
-
 shutdown: ## Shutdown daemon
 	$(PYTHON) spkezy.py shutdown
 

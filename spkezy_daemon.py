@@ -20,6 +20,7 @@ from typing import Any
 
 import structlog
 
+from spkezy_output import is_wayland_session, load_output_config
 from spkezy_postprocess import load_postprocess_config, postprocess_transcript
 from spkezy_stats import record_stats
 
@@ -103,16 +104,6 @@ def parse_arguments():
         "--cpu",
         action="store_true",
         help="Force CPU inference",
-    )
-    parser.add_argument(
-        "--no-clipboard",
-        action="store_true",
-        help="Do not copy transcript to clipboard",
-    )
-    parser.add_argument(
-        "--no-auto-type",
-        action="store_true",
-        help="Disable auto-typing transcript (falls back to clipboard)",
     )
     parser.add_argument(
         "--log-file",
@@ -585,21 +576,27 @@ def transcribe_audio(model, audio_path: str, device: str, log) -> str:
 
 def handle_transcript_output(
     transcript: str,
-    auto_type: bool,
-    use_clipboard: bool,
+    post_clipboard_action: str,
     log,
 ):
-    """Handle transcript output: copy to clipboard first, then auto-type."""
-    # Always copy to clipboard first (unless disabled)
-    if use_clipboard:
-        copy_to_clipboard(transcript, log)
+    """Handle transcript output: copy to clipboard, then optional action."""
+    copy_to_clipboard(transcript, log)
 
-    # Then auto-type if enabled
-    if auto_type:
+    if post_clipboard_action == "none":
+        return
+
+    if not is_wayland_session():
+        log.warning("output_action_unsupported", action=post_clipboard_action)
+        return
+
+    if post_clipboard_action == "autotype":
         try:
             auto_type_text(transcript, log)
         except Exception as e:
             log.warning("auto_type_failed", error=str(e))
+        return
+
+    log.warning("output_action_invalid", action=post_clipboard_action)
 
 
 def copy_to_clipboard(text: str, log):
@@ -631,6 +628,11 @@ def main():
     socket_path = get_socket_path(args.socket_path)
     state_manager = StateManager()
     postprocess_config = load_postprocess_config(log)
+    try:
+        output_config = load_output_config(log)
+    except ValueError as exc:
+        log.error("output_config_invalid", error=str(exc))
+        return 1
 
     setup_signal_handlers(state_manager)
 
@@ -731,8 +733,7 @@ def main():
             # Handle output (auto-type or clipboard)
             handle_transcript_output(
                 transcript,
-                auto_type=not args.no_auto_type,
-                use_clipboard=not args.no_clipboard,
+                post_clipboard_action=output_config.post_clipboard_action,
                 log=log,
             )
 

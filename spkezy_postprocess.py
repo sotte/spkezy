@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import os
-import tomllib
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
+
+from spkezy_config import load_toml_config
 
 DEFAULT_PROMPT = """\
 You are a cleanup assistant for live dictation.
@@ -25,25 +25,8 @@ class PostprocessConfig:
     prompt_override: str | None = None
 
 
-def _get_config_path() -> Path:
-    config_home = os.getenv("XDG_CONFIG_HOME")
-    if config_home:
-        return Path(config_home) / "spkezy" / "config.toml"
-    return Path.home() / ".config" / "spkezy" / "config.toml"
-
-
 def load_postprocess_config(log: Any | None = None) -> PostprocessConfig:
-    path = _get_config_path()
-    if not path.exists():
-        return PostprocessConfig()
-
-    try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        if log:
-            log.warning("postprocess_config_read_failed", error=str(exc))
-        return PostprocessConfig()
-
+    data = load_toml_config(log)
     section = data.get("postprocess_llm", {})
     config = PostprocessConfig()
 

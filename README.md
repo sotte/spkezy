@@ -49,6 +49,19 @@ Set your API key in the environment:
 export OPENAI_API_KEY="your-key"
 ```
 
+## Output Behavior
+
+spkezy always copies transcripts to the clipboard. You can configure what happens next.
+
+```toml
+[output]
+post_clipboard_action = "none" # "none" | "autotype"
+```
+
+Notes:
+- `autotype` is Wayland-only and requires `wtype`.
+- Invalid output values will cause the daemon to exit with an error.
+
 ## Hyprland Integration
 
 Add to your `~/.config/hypr/hyprland.conf`:
