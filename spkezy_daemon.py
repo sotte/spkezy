@@ -20,6 +20,7 @@ from typing import Any
 
 import structlog
 
+from spkezy_postprocess import load_postprocess_config, postprocess_transcript
 from spkezy_stats import record_stats
 
 
@@ -629,6 +630,7 @@ def main():
     log = configure_logging(args.debug, args.log_file)
     socket_path = get_socket_path(args.socket_path)
     state_manager = StateManager()
+    postprocess_config = load_postprocess_config(log)
 
     setup_signal_handlers(state_manager)
 
@@ -699,6 +701,7 @@ def main():
 
             try:
                 transcript = transcribe_audio(model, temp_path, device, log)
+                transcript = postprocess_transcript(transcript, postprocess_config, log)
                 transcription_duration_ms = int(
                     (time.perf_counter() - transcription_start_time) * 1000
                 )

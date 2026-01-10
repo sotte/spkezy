@@ -12,6 +12,7 @@ dependencies = [
   "structlog",
   "onnx<1.18.0",
   "rich",
+  "openai",
 ]
 
 [project.optional-dependencies]
