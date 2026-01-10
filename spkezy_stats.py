@@ -185,8 +185,8 @@ def show_stats(num_months: int = 3) -> None:
     days_total = (end_of_week - grid_start).days
     num_weeks = (days_total // 7) + 3  # +3 for month label room
 
-    intensity_chars = [" ", ".", ":", "+", "#"]
-    intensity_colors = ["bright_black", "green", "green", "bright_green", "bold bright_green"]
+    intensity_chars = [" ", "░", "▒", "▓", "█"]
+    intensity_colors = ["bright_black", "dim green", "green", "bright_green", "bold bright_green"]
 
     def get_intensity(count: int) -> int:
         if count == 0:
@@ -261,7 +261,7 @@ def show_stats(num_months: int = 3) -> None:
         console.print(row)
 
     console.print()
-    console.print("[dim]Legend:   none  . 1-2  : 3-5  + 6-10  # 11+[/dim]")
+    console.print("[dim]Legend:   none  ░ 1-2  ▒ 3-5  ▓ 6-10  █ 11+[/dim]")
     console.print()
 
     # Summary table

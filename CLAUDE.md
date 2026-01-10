@@ -19,6 +19,8 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
+**Note:** Use `bunx @fission-ai/openspec@latest` instead of just `openspec`.
+
 # spkezy
 
 Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
