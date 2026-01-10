@@ -12,9 +12,9 @@ def get_socket_path():
     """Get the daemon socket path (matches daemon.py logic)."""
     runtime_dir = os.getenv("XDG_RUNTIME_DIR")
     if runtime_dir:
-        return Path(runtime_dir) / "spk-daemon.sock"
+        return Path(runtime_dir) / "spkezy-daemon.sock"
     else:
-        return Path("/tmp") / "spk-daemon.sock"
+        return Path("/tmp") / "spkezy-daemon.sock"
 
 
 def send_command(command: str, socket_path: Path) -> dict:
@@ -54,7 +54,7 @@ def send_command(command: str, socket_path: Path) -> dict:
 def handle_stats_command():
     """Handle the stats command (doesn't require daemon)."""
     # Late import to avoid slow startup for other commands
-    from stats import clear_stats, export_stats_json, show_stats
+    from spkezy_stats import clear_stats, export_stats_json, show_stats
 
     if "--json" in sys.argv:
         print(export_stats_json())

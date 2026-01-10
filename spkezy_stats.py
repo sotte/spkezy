@@ -1,4 +1,4 @@
-"""Stats collection and viewing for parakeet-dictation."""
+"""Stats collection and viewing for spkezy."""
 
 import json
 import os
@@ -14,7 +14,7 @@ def get_data_dir() -> Path:
         base = Path(data_home)
     else:
         base = Path.home() / ".local" / "share"
-    return base / "parakeet-dictation"
+    return base / "spkezy"
 
 
 def record_stats(
@@ -163,7 +163,7 @@ def show_stats(num_months: int = 3) -> None:
         return
 
     console.print()
-    console.print("[bold]Parakeet Dictation Activity[/bold]")
+    console.print("[bold]spkezy Activity[/bold]")
     console.print()
 
     # Build n-month heatmap grid

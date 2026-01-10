@@ -1,6 +1,8 @@
-# `spk` - automatic speech recognition (ASR) for Linux
+# spkezy - automatic speech recognition (ASR) for Linux
 
-Local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
+> **spkezy** stands for **Speakeasy** - because speech should be easy
+
+Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
 
 ## Quick Start
 
@@ -19,7 +21,11 @@ make toggle       # Start/stop recording
 Add to your `~/.config/hypr/hyprland.conf`:
 
 ```bash
-bind = $mainMod SHIFT CONTROL ALT, R, exec, make -C /home/stefan/coding/parakeet-dictation toggle
+bind = $mainMod SHIFT CONTROL ALT, R, exec, make -C /path/to/spkezy toggle
 ```
 
-Replace `/home/stefan/coding/parakeet-dictation` with your installation path.
+Replace `/path/to/spkezy` with your installation directory.
+
+---
+
+**Note:** This project is a heavily modified fork of [edxeth/parakeet-dictation](https://github.com/edxeth/parakeet-dictation). Thanks to edxeth for the original work!

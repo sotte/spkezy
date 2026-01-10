@@ -1,7 +1,9 @@
 # Project Context
 
 ## Purpose
-Parakeet Dictation is a free, open-source local AI dictation tool using NVIDIA NeMo Parakeet TDT 0.6B v3. It provides GPU-accelerated or CPU-only microphone transcription with a clean CLI interface. The project prioritizes privacy (all processing is local), low latency (daemon mode keeps model loaded), and simplicity (single-purpose tool, no complex configuration).
+spkezy is a free, open-source local AI dictation tool using NVIDIA NeMo Parakeet TDT 0.6B v3. It provides GPU-accelerated or CPU-only microphone transcription with a clean CLI interface. The project prioritizes privacy (all processing is local), low latency (daemon mode keeps model loaded), and simplicity (single-purpose tool, no complex configuration).
+
+The name "spkezy" stands for "Speakeasy" - because speech should be easy.
 
 **Key Goals:**
 - Zero-cost, offline speech-to-text for everyday use
@@ -47,12 +49,12 @@ Parakeet Dictation is a free, open-source local AI dictation tool using NVIDIA N
 ### Architecture Patterns
 
 **Operational Modes:**
-1. **One-shot mode** (`transcriber.py`, deprecated) - Load model per invocation
-2. **Daemon mode** (`daemon.py`, primary) - Long-running process with IPC
+1. **One-shot mode** (deprecated, removed) - Previously loaded model per invocation
+2. **Daemon mode** (`spkezy_daemon.py`, primary) - Long-running process with IPC
 
 **Daemon Architecture:**
 - **State machine**: idle → recording → transcribing → idle
-- **IPC**: Unix socket at `$XDG_RUNTIME_DIR/parakeet-daemon.sock` (Linux-only, no Windows native support)
+- **IPC**: Unix socket at `$XDG_RUNTIME_DIR/spkezy-daemon.sock` (Linux-only, no Windows native support)
 - **Protocol**: JSON-based request/response over Unix socket
 - **Threading**: Command handler thread + main thread for model operations
 - **Output silencing**: Selective stdout/stderr redirection to suppress verbose PyTorch/NeMo logs during normal operation

@@ -19,7 +19,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
 
-# Parakeet Dictation
+# spkezy
 
 Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
 
@@ -65,7 +65,7 @@ make chores            # Run all checks
 **Key design:**
 
 - State machine: idle → recording → transcribing → idle
-- Unix socket IPC at `$XDG_RUNTIME_DIR/parakeet-daemon.sock`
+- Unix socket IPC at `$XDG_RUNTIME_DIR/spkezy-daemon.sock`
 - PyAudio captures 16kHz mono PCM audio
 - NeMo model transcribes to text
 - Output to clipboard (pyperclip) with optional auto-type (xdotool)

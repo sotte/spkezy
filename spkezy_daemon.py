@@ -20,7 +20,7 @@ from typing import Any
 
 import structlog
 
-from stats import record_stats
+from spkezy_stats import record_stats
 
 
 ########################################################################################
@@ -132,7 +132,10 @@ def parse_arguments():
     parser.add_argument(
         "--socket-path",
         default=None,
-        help="Unix socket path (default: $XDG_RUNTIME_DIR/spk-daemon.sock or /tmp/spk-daemon.sock)",
+        help=(
+            "Unix socket path "
+            "(default: $XDG_RUNTIME_DIR/spkezy-daemon.sock or /tmp/spkezy-daemon.sock)"
+        ),
     )
     parser.add_argument(
         "--no-notifications",
@@ -149,9 +152,9 @@ def get_socket_path(args_socket_path: str | None) -> Path:
 
     runtime_dir = os.getenv("XDG_RUNTIME_DIR")
     if runtime_dir:
-        return Path(runtime_dir) / "spk-daemon.sock"
+        return Path(runtime_dir) / "spkezy-daemon.sock"
 
-    return Path("/tmp") / "spk-daemon.sock"
+    return Path("/tmp") / "spkezy-daemon.sock"
 
 
 ########################################################################################

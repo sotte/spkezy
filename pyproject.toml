@@ -1,7 +1,7 @@
 [project]
-name = "parakeet-dictation"
+name = "spkezy"
 version = "0.1.0"
-description = "Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3"
+description = "spkezy - free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

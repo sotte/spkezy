@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Makefile for spk - automatic speech recognition
+# Makefile for spkezy - automatic speech recognition
 
 VENV := .venv
 PYTHON := $(VENV)/bin/python
@@ -18,36 +18,36 @@ setup-gpu: ## Install dependencies (GPU/CUDA 12.1)
 ################################################################################
 ##@ Daemon Control
 daemon: ## Start daemon
-	$(PYTHON) daemon.py
+	$(PYTHON) spkezy_daemon.py
 
 daemon-debug: ## Start daemon with debug output
-	$(PYTHON) daemon.py --debug
+	$(PYTHON) spkezy_daemon.py --debug
 
 daemon-clipboard: ## Start daemon (clipboard only, no auto-type)
-	$(PYTHON) daemon.py --no-auto-type
+	$(PYTHON) spkezy_daemon.py --no-auto-type
 
 daemon-autopaste: ## Start daemon with auto-paste enabled
-	$(PYTHON) daemon.py
+	$(PYTHON) spkezy_daemon.py
 
 shutdown: ## Shutdown daemon
-	$(PYTHON) spk.py shutdown
+	$(PYTHON) spkezy.py shutdown
 
 status: ## Check daemon status
-	$(PYTHON) spk.py status
+	$(PYTHON) spkezy.py status
 
 ################################################################################
 ##@ Recording
 toggle: ## Toggle recording (start if idle, stop if recording)
-	$(PYTHON) spk.py toggle
+	$(PYTHON) spkezy.py toggle
 
 start: ## Start recording
-	$(PYTHON) spk.py start
+	$(PYTHON) spkezy.py start
 
 stop: ## Stop recording and transcribe
-	$(PYTHON) spk.py stop
+	$(PYTHON) spkezy.py stop
 
 stats: ## Show usage statistics and activity heatmap
-	$(PYTHON) spk.py stats
+	$(PYTHON) spkezy.py stats
 
 ################################################################################
 ##@ Code Quality
@@ -78,12 +78,12 @@ chores: check typecheck ## Run all code quality checks (lint, format, typecheck)
 ##@ Utilities
 .PHONY: help
 help: ## Show this help message
-	@awk 'BEGIN {FS = ":.*##"; printf "spk - Automatic Speech Recognition\n====================================\n\n"} \
+	@awk 'BEGIN {FS = ":.*##"; printf "spkezy - Automatic Speech Recognition\n====================================\n\n"} \
 		/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
 
 list-devices: ## List available audio input devices
-	$(PYTHON) daemon.py --list-devices
+	$(PYTHON) spkezy_daemon.py --list-devices
 
 test-import: ## Quick test: import all dependencies
 	@echo "Testing Python imports..."
