@@ -44,6 +44,12 @@ stats: ## Show usage statistics and activity heatmap
 
 ################################################################################
 ##@ Code Quality
+test: ## Run unit tests with testmon caching
+	$(UV_RUN) --group dev pytest --testmon
+
+test-all: ## Run unit tests without testmon caching
+	$(UV_RUN) --group dev pytest
+
 lint: ## Run ruff linter (check only)
 	$(UV_RUN) ruff check .
 

@@ -79,4 +79,6 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "basedpyright>=1.21.0",
+    "pytest>=8.0.0",
+    "pytest-testmon>=2.1.0",
 ]

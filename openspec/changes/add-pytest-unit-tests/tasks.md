@@ -1,0 +1,12 @@
+## 1. Implementation
+- [x] 1.1 Add pytest and pytest-testmon to development dependencies in `pyproject.toml`.
+- [x] 1.2 Add pytest configuration (including marker registration) enabling test discovery and testmon caching.
+- [x] 1.3 Add Makefile targets `test` (with testmon) and `test-all` (without caching).
+- [x] 1.4 Create unit test structure under `tests/` with module-focused files.
+- [x] 1.5 Apply file-level pytest `unit` markers in each test module.
+- [x] 1.6 Add unit tests for runtime path helpers and TOML config loading.
+- [x] 1.7 Add unit tests for output config parsing and session detection.
+- [x] 1.8 Add unit tests for postprocess config parsing, prompt formatting, and early exits.
+- [x] 1.9 Add unit tests for stats aggregation, streak calculation, duration formatting, and JSON export.
+- [x] 1.10 Add unit tests for state manager transitions and command dispatch responses.
+- [x] 1.11 Document recommended pytest invocation (including testmon) in `README.md` or `Makefile`.
