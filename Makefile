@@ -44,34 +44,23 @@ stats: ## Show usage statistics and activity heatmap
 
 ################################################################################
 ##@ Code Quality
+chores: fix typecheck test ## Run fixes, typecheck, and unit tests
+	@echo ""
+	@echo "✅ All checks passed!"
+
+fix: ## Run lint fixes and formatting
+	$(UV_RUN) ruff check --fix .
+	$(UV_RUN) ruff check --select I --fix .
+	$(UV_RUN) ruff format .
+
+typecheck: ## Run basedpyright type checker
+	$(UV) run --group dev basedpyright .
+
 test: ## Run unit tests with testmon caching
 	$(UV_RUN) --group dev pytest --testmon
 
 test-all: ## Run unit tests without testmon caching
 	$(UV_RUN) --group dev pytest
-
-lint: ## Run ruff linter (check only)
-	$(UV_RUN) ruff check .
-
-format: ## Run ruff formatter (check only)
-	$(UV_RUN) ruff format --check .
-
-fix: ## Run ruff linter and apply fixes
-	$(UV_RUN) ruff check --fix .
-
-fmt: ## Run ruff formatter and apply changes
-	$(UV_RUN) ruff format .
-
-check: ## Run all checks (lint + format check)
-	$(UV_RUN) ruff check .
-	$(UV_RUN) ruff format --check .
-
-typecheck: ## Run basedpyright type checker
-	$(UV) run --group dev basedpyright .
-
-chores: check typecheck ## Run all code quality checks (lint, format, typecheck)
-	@echo ""
-	@echo "✅ All checks passed!"
 
 ################################################################################
 ##@ Utilities

@@ -101,7 +101,7 @@ Replace `/path/to/spkezy` with your installation directory.
 │   ├── runtime.py          # XDG paths + socket/config helpers
 │   ├── stats.py            # Stats recording + rendering
 │   └── sound.mp3           # UI feedback sound
-├── Makefile                # Dev shortcuts (run, lint, typecheck)
+├── Makefile                # Dev shortcuts (run, fix, typecheck)
 ├── pyproject.toml          # Packaging + tooling config
 └── README.md               # Project overview + usage
 ```
