@@ -19,6 +19,10 @@ dependencies = [
 cpu = ["torch", "torchaudio", "torchvision"]
 cuda = ["torch", "torchaudio", "torchvision"]
 
+[project.scripts]
+spkezy = "spkezy.__main__:main"
+spkezy-daemon = "spkezy.__main__:daemon_main"
+
 [tool.uv]
 index-url = "https://pypi.org/simple"
 
@@ -47,11 +51,12 @@ torchvision = [
 ]
 
 [tool.hatch.build]
-include = ["*.py", "sound.mp3"]
+include = ["spkezy/**"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+src = ["spkezy"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -59,6 +64,7 @@ ignore = []
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
+include = ["spkezy"]
 reportMissingTypeStubs = false
 reportUnknownParameterType = false
 reportUnknownArgumentType = false

@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from spkezy_config import load_toml_config
+from spkezy.runtime import load_toml_config
 
 
 @dataclass

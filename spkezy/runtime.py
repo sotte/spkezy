@@ -1,4 +1,4 @@
-"""Shared configuration loader for spkezy."""
+"""Shared runtime helpers for spkezy."""
 
 from __future__ import annotations
 
@@ -13,6 +13,27 @@ def get_config_path() -> Path:
     if config_home:
         return Path(config_home) / "spkezy" / "config.toml"
     return Path.home() / ".config" / "spkezy" / "config.toml"
+
+
+def get_data_dir() -> Path:
+    """Get the data directory for stats storage."""
+    data_home = os.getenv("XDG_DATA_HOME")
+    if data_home:
+        base = Path(data_home)
+    else:
+        base = Path.home() / ".local" / "share"
+    return base / "spkezy"
+
+
+def get_socket_path(override: str | None = None) -> Path:
+    """Get the daemon socket path."""
+    if override:
+        return Path(override)
+
+    runtime_dir = os.getenv("XDG_RUNTIME_DIR")
+    if runtime_dir:
+        return Path(runtime_dir) / "spkezy-daemon.sock"
+    return Path("/tmp") / "spkezy-daemon.sock"
 
 
 def load_toml_config(log: Any | None = None) -> dict[str, Any]:

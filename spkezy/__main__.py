@@ -1,60 +1,16 @@
 #!/usr/bin/env python3
-"""spk Control Client - Send commands to the daemon via Unix socket"""
+"""spkezy Control Client - Send commands to the daemon via Unix socket."""
 
-import json
-import os
-import socket
 import sys
-from pathlib import Path
 
-
-def get_socket_path():
-    """Get the daemon socket path (matches daemon.py logic)."""
-    runtime_dir = os.getenv("XDG_RUNTIME_DIR")
-    if runtime_dir:
-        return Path(runtime_dir) / "spkezy-daemon.sock"
-    else:
-        return Path("/tmp") / "spkezy-daemon.sock"
-
-
-def send_command(command: str, socket_path: Path) -> dict:
-    """Send a command to the daemon and return the response."""
-    if not socket_path.exists():
-        print(
-            f"❌ Daemon not running (socket not found at {socket_path})",
-            file=sys.stderr,
-        )
-        print("   Start the daemon with: make daemon", file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(str(socket_path))
-
-        # Send command
-        sock.sendall(command.encode() + b"\n")
-
-        # Receive response
-        response_data = sock.recv(4096).decode().strip()
-        sock.close()
-
-        try:
-            return json.loads(response_data)
-        except json.JSONDecodeError:
-            return {"status": "error", "message": "Invalid response from daemon"}
-
-    except ConnectionRefusedError:
-        print(f"❌ Could not connect to daemon at {socket_path}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
-        sys.exit(1)
+from spkezy.io import send_command
+from spkezy.runtime import get_socket_path
 
 
 def handle_stats_command():
     """Handle the stats command (doesn't require daemon)."""
     # Late import to avoid slow startup for other commands
-    from spkezy_stats import clear_stats, export_stats_json, show_stats
+    from spkezy.stats import clear_stats, export_stats_json, show_stats
 
     if "--json" in sys.argv:
         print(export_stats_json())
@@ -75,7 +31,7 @@ def handle_stats_command():
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: spk.py <command>")
+        print("Usage: spkezy <command>")
         print("")
         print("Commands:")
         print("  toggle    - Toggle recording (start if idle, stop if recording)")
@@ -89,8 +45,8 @@ def main():
         print("    --clear - Clear all stats")
         print("")
         print("Example:")
-        print("  python spk.py toggle")
-        print("  python spk.py stats")
+        print("  spkezy toggle")
+        print("  spkezy stats")
         sys.exit(1)
 
     command = sys.argv[1].lower()
@@ -122,5 +78,11 @@ def main():
         sys.exit(1)
 
 
+def daemon_main() -> int:
+    from spkezy import daemon
+
+    return daemon.main()
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

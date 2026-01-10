@@ -50,7 +50,7 @@ The name "spkezy" stands for "Speakeasy" - because speech should be easy.
 
 **Operational Modes:**
 1. **One-shot mode** (deprecated, removed) - Previously loaded model per invocation
-2. **Daemon mode** (`spkezy_daemon.py`, primary) - Long-running process with IPC
+2. **Daemon mode** (`spkezy/daemon.py`, primary) - Long-running process with IPC
 
 **Daemon Architecture:**
 - **State machine**: idle → recording → transcribing → idle

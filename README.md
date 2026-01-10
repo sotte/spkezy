@@ -2,18 +2,27 @@
 
 > **spkezy** stands for **Speakeasy** - because speech should be easy
 
-Free, open-source local AI dictation using NVIDIA NeMo Parakeet TDT 0.6B v3.
+Free, open-source local AI dictation using [NVIDIA NeMo Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3).
 
-## Quick Start
+**Features**:
+
+- 🚀 Fast speech-to-text with Parakeet on CPU or GPU
+- 🧠 Always-ready daemon keeps the model warm for low latency
+- ⌨️ One-command start/stop toggle for quick dictation
+- 📋 Copies transcripts to your clipboard (optional auto-type)
+- 🧽 Optional LLM cleanup for smoother text
+- 📊 Lightweight usage stats and activity heatmap
+
+## Getting Started
 
 ```bash
-# Setup
-make setup        # CPU
-make setup-gpu    # GPU (CUDA 12.1)
+# Install dependencies
+uv sync
 
-# Run
-make daemon       # Start daemon
-make toggle       # Start/stop recording
+# Run via uv
+uv run spkezy-daemon
+uv run spkezy toggle
+
 ```
 
 ## Optional LLM Post-Processing (OpenAI)
@@ -34,6 +43,7 @@ preferred_terms = ["Parakeet", "custom glossary"]
 ```
 
 Notes:
+
 - `preferred_terms` are soft-bias terms the model should prefer when ambiguous (not forced replacements).
 - `prompt_override` is optional; omit it to use the default prompt, or set it to a full prompt string.
 
@@ -59,6 +69,7 @@ post_clipboard_action = "none" # "none" | "autotype"
 ```
 
 Notes:
+
 - `autotype` is Wayland-only and requires `wtype`.
 - Invalid output values will cause the daemon to exit with an error.
 
@@ -67,7 +78,7 @@ Notes:
 Add to your `~/.config/hypr/hyprland.conf`:
 
 ```bash
-bind = $mainMod SHIFT CONTROL ALT, R, exec, make -C /path/to/spkezy toggle
+bind = $mainMod SHIFT CONTROL ALT, R, exec, uv run --project /path/to/spkezy spkezy toggle
 ```
 
 Replace `/path/to/spkezy` with your installation directory.
@@ -75,3 +86,22 @@ Replace `/path/to/spkezy` with your installation directory.
 ---
 
 **Note:** This project is a heavily modified fork of [edxeth/parakeet-dictation](https://github.com/edxeth/parakeet-dictation). Thanks to edxeth for the original work!
+
+## Developers
+
+```
+.
+├── spkezy/
+│   ├── __init__.py         # Package marker (empty)
+│   ├── __main__.py         # CLI entrypoint (client + daemon wrapper)
+│   ├── daemon.py           # Daemon loop, recording, transcription
+│   ├── io.py               # Unix socket server + client send logic
+│   ├── output.py           # Output config + clipboard/autotype helpers
+│   ├── postprocess.py      # LLM post-processing config + client
+│   ├── runtime.py          # XDG paths + socket/config helpers
+│   ├── stats.py            # Stats recording + rendering
+│   └── sound.mp3           # UI feedback sound
+├── Makefile                # Dev shortcuts (run, lint, typecheck)
+├── pyproject.toml          # Packaging + tooling config
+└── README.md               # Project overview + usage
+```

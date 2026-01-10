@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # Makefile for spkezy - automatic speech recognition
 
-VENV := .venv
-PYTHON := $(VENV)/bin/python
 UV := uv
+UV_RUN := $(UV) run
 
 .DEFAULT_GOAL := help
 
 ################################################################################
 ##@ Setup
 setup: ## Install dependencies (CPU version)
-	$(UV) sync --extra cpu
+	$(UV) sync
 
 setup-gpu: ## Install dependencies (GPU/CUDA 12.1)
 	$(UV) sync --extra cuda
@@ -18,48 +17,48 @@ setup-gpu: ## Install dependencies (GPU/CUDA 12.1)
 ################################################################################
 ##@ Daemon Control
 daemon: ## Start daemon
-	$(PYTHON) spkezy_daemon.py
+	$(UV_RUN) spkezy-daemon
 
 daemon-debug: ## Start daemon with debug output
-	$(PYTHON) spkezy_daemon.py --debug
+	$(UV_RUN) spkezy-daemon --debug
 
 shutdown: ## Shutdown daemon
-	$(PYTHON) spkezy.py shutdown
+	$(UV_RUN) spkezy shutdown
 
 status: ## Check daemon status
-	$(PYTHON) spkezy.py status
+	$(UV_RUN) spkezy status
 
 ################################################################################
 ##@ Recording
 toggle: ## Toggle recording (start if idle, stop if recording)
-	$(PYTHON) spkezy.py toggle
+	$(UV_RUN) spkezy toggle
 
 start: ## Start recording
-	$(PYTHON) spkezy.py start
+	$(UV_RUN) spkezy start
 
 stop: ## Stop recording and transcribe
-	$(PYTHON) spkezy.py stop
+	$(UV_RUN) spkezy stop
 
 stats: ## Show usage statistics and activity heatmap
-	$(PYTHON) spkezy.py stats
+	$(UV_RUN) spkezy stats
 
 ################################################################################
 ##@ Code Quality
 lint: ## Run ruff linter (check only)
-	$(UV) run ruff check .
+	$(UV_RUN) ruff check .
 
 format: ## Run ruff formatter (check only)
-	$(UV) run ruff format --check .
+	$(UV_RUN) ruff format --check .
 
 fix: ## Run ruff linter and apply fixes
-	$(UV) run ruff check --fix .
+	$(UV_RUN) ruff check --fix .
 
 fmt: ## Run ruff formatter and apply changes
-	$(UV) run ruff format .
+	$(UV_RUN) ruff format .
 
 check: ## Run all checks (lint + format check)
-	$(UV) run ruff check .
-	$(UV) run ruff format --check .
+	$(UV_RUN) ruff check .
+	$(UV_RUN) ruff format --check .
 
 typecheck: ## Run basedpyright type checker
 	$(UV) run --group dev basedpyright .
@@ -77,31 +76,10 @@ help: ## Show this help message
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
 
 list-devices: ## List available audio input devices
-	$(PYTHON) spkezy_daemon.py --list-devices
-
-test-import: ## Quick test: import all dependencies
-	@echo "Testing Python imports..."
-	@$(PYTHON) -c "import torch; print('✓ PyTorch:', torch.__version__)"
-	@$(PYTHON) -c "import pyaudio; print('✓ PyAudio')"
-	@$(PYTHON) -c "import nemo; print('✓ NeMo')"
-	@$(PYTHON) -c "import pyperclip; print('✓ Pyperclip')"
-	@$(PYTHON) -c "import structlog; print('✓ Structlog')"
-	@echo ""
-	@echo "✅ All imports successful!"
-
-info: ## Show environment information
-	@echo "Environment Information"
-	@echo "======================"
-	@echo "Python: $(shell python3 --version)"
-	@echo "uv: $(shell uv --version)"
-	@echo "Venv exists: $(shell [ -d $(VENV) ] && echo 'yes' || echo 'no')"
-	@if [ -d "$(VENV)" ]; then \
-		echo "PyTorch: $(shell $(PYTHON) -c 'import torch; print(torch.__version__)' 2>/dev/null || echo 'not installed')"; \
-		echo "CUDA available: $(shell $(PYTHON) -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'N/A')"; \
-	fi
+	$(UV_RUN) spkezy-daemon --list-devices
 
 clean: ## Remove virtual environment and cache
-	rm -rf $(VENV)
+	rm -rf .venv
 	rm -rf __pycache__
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ Cleaned up!"

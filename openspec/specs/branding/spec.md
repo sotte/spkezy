@@ -29,27 +29,27 @@ description = "spkezy - free, open-source local AI dictation using NVIDIA NeMo P
 
 **Expected**: Package name is "spkezy", description includes both project name and model reference
 
-### Requirement: Module filenames must use "spkezy" prefix
+### Requirement: Modules must live under the "spkezy" package
 
-All Python modules SHALL use "spkezy" or "spkezy_*" naming pattern (with underscores) for consistency and clarity.
+All Python runtime modules SHALL live under the `spkezy/` package directory for consistency and clarity.
 
-#### Scenario: User lists Python files in project root
+#### Scenario: User lists Python package files
 
 ```bash
-$ ls *.py
-spkezy_daemon.py  spkezy.py  spkezy_stats.py
+$ ls spkezy
+__init__.py  __main__.py  daemon.py  io.py  output.py  postprocess.py  runtime.py  stats.py
 ```
 
-**Expected**: All modules use spkezy prefix with underscores
+**Expected**: Runtime modules are contained within the spkezy package
 
-#### Scenario: Developer imports stats module in spkezy.py
+#### Scenario: Developer imports stats module in __main__.py
 
 ```python
-# In spkezy.py, line 57
-from spkezy_stats import clear_stats, export_stats_json, show_stats
+# In spkezy/__main__.py
+from spkezy.stats import clear_stats, export_stats_json, show_stats
 ```
 
-**Expected**: Import uses module name matching filename (spkezy_stats for spkezy_stats.py)
+**Expected**: Import uses the spkezy package namespace
 
 ### Requirement: IPC socket must use "spkezy-daemon.sock" naming
 
@@ -58,10 +58,10 @@ The Unix socket for daemon communication SHALL be named `spkezy-daemon.sock` to 
 #### Scenario: Daemon starts and creates socket
 
 ```python
-# In spkezy_daemon.py
-def get_socket_path(args_socket_path: str | None) -> Path:
-    if args_socket_path:
-        return Path(args_socket_path)
+# In spkezy/runtime.py
+def get_socket_path(override: str | None = None) -> Path:
+    if override:
+        return Path(override)
     runtime_dir = os.getenv("XDG_RUNTIME_DIR")
     if runtime_dir:
         return Path(runtime_dir) / "spkezy-daemon.sock"
@@ -73,16 +73,11 @@ def get_socket_path(args_socket_path: str | None) -> Path:
 #### Scenario: Client connects to daemon
 
 ```python
-# In spkezy.py
-def get_socket_path():
-    runtime_dir = os.getenv("XDG_RUNTIME_DIR")
-    if runtime_dir:
-        return Path(runtime_dir) / "spkezy-daemon.sock"
-    else:
-        return Path("/tmp") / "spkezy-daemon.sock"
+# In spkezy/__main__.py
+socket_path = get_socket_path()
 ```
 
-**Expected**: Client uses identical socket path logic to daemon
+**Expected**: Client uses the shared socket path helper
 
 ### Requirement: AI model references must remain "Parakeet TDT"
 
@@ -113,28 +108,28 @@ All Makefile targets SHALL invoke renamed Python modules with correct paths.
 
 ```makefile
 daemon: ## Start daemon
- $(PYTHON) spkezy_daemon.py
+ $(UV_RUN) spkezy-daemon
 ```
 
-**Expected**: Executes spkezy_daemon.py
+**Expected**: Executes spkezy-daemon
 
 #### Scenario: User runs "make toggle"
 
 ```makefile
 toggle: ## Toggle recording (start if idle, stop if recording)
- $(PYTHON) spkezy.py toggle
+ $(UV_RUN) spkezy toggle
 ```
 
-**Expected**: Executes spkezy.py with toggle argument
+**Expected**: Executes spkezy with toggle argument
 
 #### Scenario: User runs "make stats"
 
 ```makefile
 stats: ## Show usage statistics and activity heatmap
- $(PYTHON) spkezy.py stats
+ $(UV_RUN) spkezy stats
 ```
 
-**Expected**: Executes spkezy.py (which imports from spkezy_stats)
+**Expected**: Executes spkezy stats
 
 ### Requirement: README must explain name origin
 
@@ -157,4 +152,3 @@ Documentation examples SHALL NOT hardcode specific user paths like `/home/stefan
 #### Scenario: User reads Hyprland integration example
 
 ```markdown
-

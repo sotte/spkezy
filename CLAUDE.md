@@ -58,9 +58,9 @@ make chores            # Run all checks
 
 **Core files:**
 
-- `daemon.py` - Long-running daemon, keeps model loaded in memory
-- `spk.py` - CLI client for daemon control (start/stop/toggle/status/shutdown)
-- `stats.py` - Usage statistics and activity heatmap
+- `spkezy/daemon.py` - Long-running daemon, keeps model loaded in memory
+- `spkezy/__main__.py` - CLI client for daemon control (start/stop/toggle/status/shutdown)
+- `spkezy/stats.py` - Usage statistics and activity heatmap
 
 **Key design:**
 

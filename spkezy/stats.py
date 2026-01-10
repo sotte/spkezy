@@ -1,20 +1,10 @@
 """Stats collection and viewing for spkezy."""
 
 import json
-import os
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
-
-def get_data_dir() -> Path:
-    """Get the data directory for stats storage."""
-    data_home = os.getenv("XDG_DATA_HOME")
-    if data_home:
-        base = Path(data_home)
-    else:
-        base = Path.home() / ".local" / "share"
-    return base / "spkezy"
+from spkezy.runtime import get_data_dir
 
 
 def record_stats(

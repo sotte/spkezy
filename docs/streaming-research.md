@@ -81,7 +81,7 @@ right_context_secs = 2.0
 
 ## Changes Needed for spkezy
 
-### Current Architecture (`spkezy_daemon.py`)
+### Current Architecture (`spkezy/daemon.py`)
 
 ```
 idle → recording (buffer ALL audio) → transcribing (process entire file) → output → idle

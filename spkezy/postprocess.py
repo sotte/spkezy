@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-from spkezy_config import load_toml_config
+from spkezy.runtime import load_toml_config
 
 DEFAULT_PROMPT = """\
 You are a cleanup assistant for live dictation.
