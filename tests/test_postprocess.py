@@ -1,5 +1,4 @@
 import pytest
-
 from spkezy import postprocess
 
 pytestmark = pytest.mark.unit
@@ -64,9 +63,7 @@ prompt_override = "   "
         ([], "Transcript:\nHello"),
     ],
 )
-def test_build_user_prompt_includes_preferred_terms_when_present(
-    preferred_terms, expected_snippet
-):
+def test_build_user_prompt_includes_preferred_terms_when_present(preferred_terms, expected_snippet):
     prompt = postprocess._build_user_prompt("Hello", preferred_terms)
 
     assert expected_snippet in prompt

@@ -2,7 +2,6 @@ import json
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from spkezy import stats
 
 pytestmark = pytest.mark.unit

@@ -1,5 +1,4 @@
 import pytest
-
 from spkezy import io
 
 pytestmark = pytest.mark.unit

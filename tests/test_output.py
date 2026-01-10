@@ -1,5 +1,4 @@
 import pytest
-
 from spkezy import output
 
 pytestmark = pytest.mark.unit
@@ -19,9 +18,7 @@ def test_load_output_config_accepts_supported_post_clipboard_actions(
     config_dir = tmp_path / "spkezy"
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
-    config_file.write_text(
-        f"[output]\npost_clipboard_action = '{raw_value}'\n", encoding="utf-8"
-    )
+    config_file.write_text(f"[output]\npost_clipboard_action = '{raw_value}'\n", encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
 
     config = output.load_output_config()
@@ -41,9 +38,7 @@ def test_load_output_config_raises_value_error_on_invalid_action(monkeypatch, tm
     config_dir = tmp_path / "spkezy"
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
-    config_file.write_text(
-        "[output]\npost_clipboard_action = 'invalid'\n", encoding="utf-8"
-    )
+    config_file.write_text("[output]\npost_clipboard_action = 'invalid'\n", encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
 
     with pytest.raises(ValueError):

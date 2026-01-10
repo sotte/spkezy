@@ -419,6 +419,13 @@ def main():
 
     log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
 
+    send_notification(
+        "🥃 spkezy - Loading Model",
+        "Loading speech model...",
+        not args.no_notifications,
+        log,
+    )
+
     # Load model
     try:
         model, device = load_model(args.cpu, log)
@@ -431,7 +438,12 @@ def main():
     if not socket_server.start():
         return 1
 
-    send_notification("spk Ready", f"Model loaded on {device}", not args.no_notifications, log)
+    send_notification(
+        "🥃 spkezy - Ready",
+        f"Model loaded on {device}",
+        not args.no_notifications,
+        log,
+    )
 
     log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
 
@@ -443,7 +455,12 @@ def main():
                 break
 
             log.info("recording_triggered")
-            send_notification("Recording", "Listening...", not args.no_notifications, log)
+            send_notification(
+                "🥃 spkezy - Recording",
+                "Listening...",
+                not args.no_notifications,
+                log,
+            )
             play_sound(log)
 
             # Track recording start time for stats
@@ -465,7 +482,12 @@ def main():
             recording_duration_ms = int((time.perf_counter() - recording_start_time) * 1000)
 
             # Notify user that transcription is starting
-            send_notification("Transcribing...", "Processing audio", not args.no_notifications, log)
+            send_notification(
+                "🥃 spkezy - Transcribing",
+                "Processing audio",
+                not args.no_notifications,
+                log,
+            )
             play_sound(log)
 
             # Save to temp file
@@ -509,7 +531,12 @@ def main():
 
             # Notification with preview
             preview = transcript[:80] + "..." if len(transcript) > 80 else transcript
-            send_notification("Transcription Complete", preview, not args.no_notifications, log)
+            send_notification(
+                "🥃 spkezy - Transcription Complete",
+                preview,
+                not args.no_notifications,
+                log,
+            )
 
             # Handle output (auto-type or clipboard)
             handle_transcript_output(
