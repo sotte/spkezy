@@ -53,8 +53,8 @@ fix: ## Run lint fixes and formatting
 	$(UV_RUN) ruff check --select I --fix .
 	$(UV_RUN) ruff format .
 
-typecheck: ## Run basedpyright type checker
-	$(UV) run --group dev basedpyright .
+typecheck: ## Run ty type checker
+	$(UV) run --group dev ty check
 
 test: ## Run unit tests with testmon caching
 	$(UV_RUN) --group dev pytest --testmon

@@ -80,7 +80,7 @@ make chores            # Run all checks
 
 - Model downloads ~1-2GB on first run (cached at `~/.cache/huggingface/hub`)
 - Startup: ~5-15s GPU, ~20-40s CPU (daemon eliminates this after initial load)
-- Ruff for linting/formatting (100 char lines), basedpyright for type checking
+- Ruff for linting/formatting (100 char lines), ty for type checking
 - No unit tests currently - use `make test-import` and manual testing
 
 For comprehensive project context, see `openspec/project.md`.

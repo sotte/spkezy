@@ -30,7 +30,7 @@ The name "spkezy" stands for "Speakeasy" - because speech should be easy.
 ### Build & Development Tools
 - **uv** - Fast Python package installer and virtual environment manager
 - **ruff** - Linter and formatter (replaces flake8, black, isort)
-- **basedpyright** - Type checker
+- **ty** - Type checker
 - **Make** - Task automation (Makefile)
 
 ## Project Conventions
@@ -39,7 +39,7 @@ The name "spkezy" stands for "Speakeasy" - because speech should be easy.
 - **Line length**: 100 characters (configured in pyproject.toml)
 - **Target version**: Python 3.11
 - **Linting**: Ruff with rules E (pycodestyle errors), F (pyflakes), I (isort), N (pep8-naming), W (warnings), UP (pyupgrade)
-- **Type checking**: basedpyright in "standard" mode with relaxed unknown type reporting
+- **Type checking**: ty with default settings
 - **Formatting**: Ruff formatter (auto-applied via `make fmt`)
 - **Function names**: Long and descriptive to make code self-documenting; avoid abbreviations
 - **Comments**: Preserve existing comments unless provably false; add new comments only when they add value beyond obvious code behavior; avoid temporal context ("after refactor", "new implementation")

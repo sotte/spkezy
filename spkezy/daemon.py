@@ -247,8 +247,8 @@ def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
     t_start = time.perf_counter()
     model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
     # Move to device
-    model.to(device)  # type: ignore[attr-defined]
-    model.eval()  # type: ignore[attr-defined]
+    model.to(device)
+    model.eval()
     t_end = time.perf_counter()
 
     log.info("model_loaded", device=device, load_time_seconds=round(t_end - t_start, 1))

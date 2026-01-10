@@ -62,23 +62,9 @@ src = ["spkezy"]
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = []
 
-[tool.basedpyright]
-typeCheckingMode = "standard"
-include = ["spkezy"]
-reportMissingTypeStubs = false
-reportUnknownParameterType = false
-reportUnknownArgumentType = false
-reportUnknownMemberType = false
-reportUnknownVariableType = false
-reportAny = false
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = [
-    "basedpyright>=1.21.0",
-    "pytest>=8.0.0",
-    "pytest-testmon>=2.1.0",
-]
+dev = ["pytest>=8.0.0", "pytest-testmon>=2.1.0", "ty>=0.0.11"]
