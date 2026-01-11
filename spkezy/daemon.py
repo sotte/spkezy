@@ -185,16 +185,20 @@ def play_sound(log=None):
             log.debug("sound_playback_failed", error=str(e))
 
 
-def auto_type_text(text: str, log=None):
+def auto_type_text(text: str, delay_ms: int, log=None):
     """Auto-type text using wtype (Wayland)."""
     try:
+        command = ["wtype"]
+        if delay_ms > 0:
+            command.extend(["-d", str(delay_ms)])
+        command.append(text)
         subprocess.run(
-            ["wtype", text],
+            command,
             check=True,
             capture_output=True,
         )
         if log:
-            log.info("auto_typed", length=len(text))
+            log.info("auto_typed", length=len(text), delay_ms=delay_ms)
     except FileNotFoundError:
         if log:
             log.warning("wtype_not_found", message="install wtype package")
@@ -358,6 +362,7 @@ def transcribe_audio(model, audio_path: str, device: str, log) -> str:
 def handle_transcript_output(
     transcript: str,
     post_clipboard_action: str,
+    autotype_delay_ms: int,
     log,
 ):
     """Handle transcript output: copy to clipboard, then optional action."""
@@ -372,7 +377,7 @@ def handle_transcript_output(
 
     if post_clipboard_action == "autotype":
         try:
-            auto_type_text(transcript, log)
+            auto_type_text(transcript, autotype_delay_ms, log)
         except Exception as e:
             log.warning("auto_type_failed", error=str(e))
         return
@@ -542,6 +547,7 @@ def main():
             handle_transcript_output(
                 transcript,
                 post_clipboard_action=output_config.post_clipboard_action,
+                autotype_delay_ms=output_config.autotype_delay_ms,
                 log=log,
             )
 

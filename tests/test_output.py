@@ -32,6 +32,20 @@ def test_load_output_config_defaults_to_none_when_config_missing(monkeypatch, tm
     config = output.load_output_config()
 
     assert config.post_clipboard_action == "none"
+    assert config.autotype_delay_ms == 0
+
+
+@pytest.mark.parametrize("delay_ms", [0, 15])
+def test_load_output_config_accepts_autotype_delay_ms(monkeypatch, tmp_path, delay_ms):
+    config_dir = tmp_path / "spkezy"
+    config_dir.mkdir()
+    config_file = config_dir / "config.toml"
+    config_file.write_text(f"[output]\nautotype_delay_ms = {delay_ms}\n", encoding="utf-8")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+
+    config = output.load_output_config()
+
+    assert config.autotype_delay_ms == delay_ms
 
 
 def test_load_output_config_raises_value_error_on_invalid_action(monkeypatch, tmp_path):
@@ -39,6 +53,18 @@ def test_load_output_config_raises_value_error_on_invalid_action(monkeypatch, tm
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
     config_file.write_text("[output]\npost_clipboard_action = 'invalid'\n", encoding="utf-8")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+
+    with pytest.raises(ValueError):
+        output.load_output_config()
+
+
+@pytest.mark.parametrize("raw_value", [-1, "fast"])
+def test_load_output_config_rejects_invalid_autotype_delay_ms(monkeypatch, tmp_path, raw_value):
+    config_dir = tmp_path / "spkezy"
+    config_dir.mkdir()
+    config_file = config_dir / "config.toml"
+    config_file.write_text(f"[output]\nautotype_delay_ms = {raw_value!r}\n", encoding="utf-8")
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
 
     with pytest.raises(ValueError):

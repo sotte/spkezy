@@ -12,6 +12,7 @@ from spkezy.runtime import load_toml_config
 @dataclass
 class OutputConfig:
     post_clipboard_action: str = "none"
+    autotype_delay_ms: int = 0
 
 
 def load_output_config(log: Any | None = None) -> OutputConfig:
@@ -29,6 +30,13 @@ def load_output_config(log: Any | None = None) -> OutputConfig:
                 raise ValueError(
                     f"Invalid post_clipboard_action '{action}'. Use 'none' or 'autotype'."
                 )
+        delay_value = section.get("autotype_delay_ms")
+        if delay_value is not None:
+            if isinstance(delay_value, bool) or not isinstance(delay_value, int):
+                raise ValueError("Invalid autotype_delay_ms value; must be a non-negative integer.")
+            if delay_value < 0:
+                raise ValueError("Invalid autotype_delay_ms value; must be a non-negative integer.")
+            config.autotype_delay_ms = delay_value
 
     return config
 

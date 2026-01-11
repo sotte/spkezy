@@ -40,6 +40,7 @@ Location: `$XDG_CONFIG_HOME/spkezy/config.toml` (or `~/.config/spkezy/config.tom
 ```toml
 [output]                        # See "Output Behavior" section
 post_clipboard_action = "none"  # "none" | "autotype" (see Output Behavior)
+autotype_delay_ms = 0           # Keystroke delay in ms for autotype
 
 [postprocess_llm]               # See "LLM Post-Processing" section
 enabled = false
@@ -58,9 +59,11 @@ Optionally, it can autotype the transcript.
 # $XDG_CONFIG_HOME/spkezy/config.toml
 [output]
 post_clipboard_action = "none" # "none" | "autotype"
+autotype_delay_ms = 0          # Keystroke delay in ms for autotype
 ```
 
 Notes: `autotype` is Wayland-only and requires `wtype`.
+Set `autotype_delay_ms` to add a per-keystroke delay; `0` keeps current speed. Some applications can't handle a delay of 0.
 
 ### LLM Post-Processing of Transcripts
 

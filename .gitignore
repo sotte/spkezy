@@ -27,3 +27,5 @@ Thumbs.db
 transcriber.debug.log
 
 .testmondata
+.testmondata-shm
+.testmondata-wal
