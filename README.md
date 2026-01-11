@@ -14,7 +14,7 @@
 - 📋 Copies transcripts to your clipboard (optional auto-type)
 - 🧽 Optional LLM cleanup for smoother text
 - 📊 Lightweight usage stats and activity heatmap
-- 📝 Automatic transcript storage for easy retrieval
+- 📝 Configurable transcript storage for easy retrieval
 
 ## Getting Started
 
@@ -101,7 +101,15 @@ spkezy stats --clear  # Delete all stats and transcripts
 
 Location: `$XDG_DATA_HOME/spkezy/transcripts/` (or `~/.local/share/spkezy/transcripts/`)
 
-Every transcription is automatically saved to daily JSONL files with timestamp and full text.
+By default, every transcription is automatically saved to daily JSONL files with timestamp and full text.
+
+To keep stats without saving transcript text, disable transcript storage:
+
+```toml
+# $XDG_CONFIG_HOME/spkezy/config.toml
+[stats]
+store_transcripts = false
+```
 
 ### Hyprland Integration
 

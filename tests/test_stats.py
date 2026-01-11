@@ -35,6 +35,32 @@ def test_record_stats_writes_stats_and_transcript_entries(monkeypatch, tmp_path)
     assert transcript_entry["text"] == "hello world"
 
 
+def test_record_stats_skips_transcript_write_when_disabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    config_home = tmp_path / "config"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config_home))
+    config_dir = config_home / "spkezy"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.toml").write_text(
+        "[stats]\nstore_transcripts = false\n",
+        encoding="utf-8",
+    )
+
+    stats.record_stats(
+        recording_duration_ms=1200,
+        transcription_duration_ms=3400,
+        transcript="hello world",
+        device="cpu",
+    )
+
+    date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+    stats_file = tmp_path / "spkezy" / "stats" / f"{date_str}.jsonl"
+    transcript_file = tmp_path / "spkezy" / "transcripts" / f"{date_str}.jsonl"
+
+    assert stats_file.exists()
+    assert not transcript_file.exists()
+
+
 def test_load_all_stats_skips_invalid_json_lines(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
     stats_dir = tmp_path / "spkezy" / "stats"

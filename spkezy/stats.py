@@ -3,8 +3,27 @@
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from spkezy.runtime import get_data_dir
+from spkezy.runtime import get_data_dir, load_toml_config
+
+
+@dataclass
+class StatsConfig:
+    """Configuration for stats storage."""
+
+    store_transcripts: bool = True
+
+
+def load_stats_config(log: Any | None = None) -> StatsConfig:
+    data = load_toml_config(log)
+    config = StatsConfig()
+    stats_section = data.get("stats")
+    if isinstance(stats_section, dict):
+        store_transcripts = stats_section.get("store_transcripts")
+        if isinstance(store_transcripts, bool):
+            config.store_transcripts = store_transcripts
+    return config
 
 
 def record_stats(
@@ -14,9 +33,9 @@ def record_stats(
     device: str,
 ) -> None:
     """Record a transcription event to daily JSONL files."""
+    config = load_stats_config()
     base_path = get_data_dir()
     stats_dir = base_path / "stats"
-    transcripts_dir = base_path / "transcripts"
 
     now = datetime.now(UTC)
     timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -24,7 +43,6 @@ def record_stats(
 
     # Ensure directories exist
     stats_dir.mkdir(parents=True, exist_ok=True)
-    transcripts_dir.mkdir(parents=True, exist_ok=True)
 
     # Write stats entry
     stats_file = stats_dir / f"{date_str}.jsonl"
@@ -39,14 +57,17 @@ def record_stats(
     with open(stats_file, "a") as f:
         f.write(json.dumps(stats_entry) + "\n")
 
-    # Write transcript entry
-    transcript_file = transcripts_dir / f"{date_str}.jsonl"
-    transcript_entry = {
-        "timestamp": timestamp,
-        "text": transcript,
-    }
-    with open(transcript_file, "a") as f:
-        f.write(json.dumps(transcript_entry) + "\n")
+    if config.store_transcripts:
+        transcripts_dir = base_path / "transcripts"
+        transcripts_dir.mkdir(parents=True, exist_ok=True)
+        # Write transcript entry
+        transcript_file = transcripts_dir / f"{date_str}.jsonl"
+        transcript_entry = {
+            "timestamp": timestamp,
+            "text": transcript,
+        }
+        with open(transcript_file, "a") as f:
+            f.write(json.dumps(transcript_entry) + "\n")
 
 
 @dataclass
