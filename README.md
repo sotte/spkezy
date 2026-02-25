@@ -1,4 +1,4 @@
-# `spkezy` - automatic speech recognition (ASR) for Linux on your computer
+# `spkezy` - automatic speech recognition (ASR) for your computer
 
 **spkezy** stands for **speakeasy**, it is an open-source local automatic speech recognition tool using [NVIDIA NeMo Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3).
 
@@ -19,6 +19,9 @@
 ## Getting Started
 
 ```bash
+# macOS setup (Apple Silicon / Intel)
+brew install portaudio
+
 # Install dependencies
 uv sync
 
@@ -62,8 +65,10 @@ post_clipboard_action = "none" # "none" | "autotype"
 autotype_delay_ms = 0          # Keystroke delay in ms for autotype
 ```
 
-Notes: `autotype` is Wayland-only and requires `wtype`.
-Set `autotype_delay_ms` to add a per-keystroke delay; `0` keeps current speed. Some applications can't handle a delay of 0.
+Notes:
+- Linux: `autotype` is Wayland-only and requires `wtype`.
+- macOS: `autotype` uses AppleScript (`osascript`) and requires Accessibility permission for your terminal app (System Settings -> Privacy & Security -> Accessibility).
+- Set `autotype_delay_ms` to add a per-keystroke delay; `0` keeps current speed. Some applications can't handle a delay of 0.
 
 ### LLM Post-Processing of Transcripts
 
@@ -123,6 +128,16 @@ bind = $mainMod SHIFT CONTROL ALT, R, exec, uv run --project /path/to/spkezy spk
 ```
 
 Replace `/path/to/spkezy` with your installation directory.
+
+### macOS Hotkey Integration
+
+On macOS, bind a global shortcut in your preferred automation tool and run:
+
+```bash
+uv run --project /path/to/spkezy spkezy toggle
+```
+
+Good options include Raycast, Keyboard Maestro, BetterTouchTool, Hammerspoon, and Karabiner-Elements.
 
 ## Development
 

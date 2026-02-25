@@ -79,3 +79,21 @@ def test_is_wayland_session_reflects_environment_value(monkeypatch, wayland_valu
         monkeypatch.setenv("WAYLAND_DISPLAY", wayland_value)
 
     assert output.is_wayland_session() is expected
+
+
+def test_is_autotype_supported_is_true_on_macos(monkeypatch):
+    monkeypatch.setattr(output.sys, "platform", "darwin")
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+
+    assert output.is_autotype_supported() is True
+
+
+@pytest.mark.parametrize("wayland_value, expected", [("wayland-1", True), (None, False)])
+def test_is_autotype_supported_requires_wayland_on_linux(monkeypatch, wayland_value, expected):
+    monkeypatch.setattr(output.sys, "platform", "linux")
+    if wayland_value is None:
+        monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    else:
+        monkeypatch.setenv("WAYLAND_DISPLAY", wayland_value)
+
+    assert output.is_autotype_supported() is expected

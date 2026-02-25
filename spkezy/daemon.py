@@ -17,7 +17,7 @@ from typing import Any
 import structlog
 
 from spkezy.io import DaemonState, StateManager, UnixSocketServer
-from spkezy.output import is_wayland_session, load_output_config
+from spkezy.output import is_autotype_supported, load_output_config
 from spkezy.postprocess import load_postprocess_config, postprocess_transcript
 from spkezy.runtime import get_socket_path
 from spkezy.stats import record_stats
@@ -150,14 +150,46 @@ def setup_signal_handlers(state_manager: StateManager):
 
 ########################################################################################
 # Notifications & Audio Feedback
+def _escape_applescript_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def get_notification_command(title: str, message: str) -> list[str]:
+    if sys.platform == "darwin":
+        escaped_title = _escape_applescript_string(title)
+        escaped_message = _escape_applescript_string(message)
+        script = f'display notification "{escaped_message}" with title "{escaped_title}"'
+        return ["osascript", "-e", script]
+    return ["notify-send", "-u", "normal", "-t", "2000", title, message]
+
+
+def get_sound_command(sound_file: Path) -> list[str]:
+    player = "afplay" if sys.platform == "darwin" else "paplay"
+    return [player, str(sound_file)]
+
+
+def get_autotype_command(text: str, delay_ms: int) -> list[str]:
+    if sys.platform == "darwin":
+        escaped_text = _escape_applescript_string(text)
+        script = f'tell application "System Events" to keystroke "{escaped_text}"'
+        return ["osascript", "-e", script]
+
+    command = ["wtype"]
+    if delay_ms > 0:
+        command.extend(["-d", str(delay_ms)])
+    command.append(text)
+    return command
+
+
 def send_notification(title: str, message: str, enabled: bool = True, log=None):
-    """Send desktop notification via notify-send."""
+    """Send desktop notification using platform-specific backend."""
     if not enabled:
         return
 
     try:
+        command = get_notification_command(title, message)
         subprocess.run(
-            ["notify-send", "-u", "normal", "-t", "2000", title, message],
+            command,
             check=False,
             capture_output=True,
         )
@@ -169,14 +201,15 @@ def send_notification(title: str, message: str, enabled: bool = True, log=None):
 
 
 def play_sound(log=None):
-    """Play sound.mp3 via paplay (non-blocking)."""
+    """Play sound.mp3 via platform-specific command (non-blocking)."""
     try:
         sound_file = Path(__file__).parent / "sound.mp3"
         if not sound_file.exists():
             return
 
+        command = get_sound_command(sound_file)
         subprocess.Popen(
-            ["paplay", str(sound_file)],
+            command,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -186,12 +219,9 @@ def play_sound(log=None):
 
 
 def auto_type_text(text: str, delay_ms: int, log=None):
-    """Auto-type text using wtype (Wayland)."""
+    """Auto-type text using platform-specific backend."""
     try:
-        command = ["wtype"]
-        if delay_ms > 0:
-            command.extend(["-d", str(delay_ms)])
-        command.append(text)
+        command = get_autotype_command(text, delay_ms)
         subprocess.run(
             command,
             check=True,
@@ -201,7 +231,8 @@ def auto_type_text(text: str, delay_ms: int, log=None):
             log.info("auto_typed", length=len(text), delay_ms=delay_ms)
     except FileNotFoundError:
         if log:
-            log.warning("wtype_not_found", message="install wtype package")
+            tool_name = "osascript" if sys.platform == "darwin" else "wtype"
+            log.warning("autotype_tool_not_found", tool=tool_name)
         raise
     except subprocess.CalledProcessError as e:
         if log:
@@ -371,7 +402,7 @@ def handle_transcript_output(
     if post_clipboard_action == "none":
         return
 
-    if not is_wayland_session():
+    if not is_autotype_supported():
         log.warning("output_action_unsupported", action=post_clipboard_action)
         return
 

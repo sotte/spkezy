@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,3 +44,9 @@ def load_output_config(log: Any | None = None) -> OutputConfig:
 
 def is_wayland_session() -> bool:
     return bool(os.getenv("WAYLAND_DISPLAY"))
+
+
+def is_autotype_supported() -> bool:
+    if sys.platform == "darwin":
+        return True
+    return is_wayland_session()
