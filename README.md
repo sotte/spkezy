@@ -34,6 +34,29 @@ uv run spkezy toggle
 uv run spkezy toggle
 ```
 
+### macOS First Run Checklist
+
+- Grant microphone access to your terminal app when prompted.
+- If using `autotype`, grant Accessibility access to your terminal app:
+  - System Settings -> Privacy & Security -> Accessibility
+- Optional: enable notifications for your terminal app if you want daemon notifications.
+- On Apple Silicon, `spkezy-daemon` automatically uses the Metal/MPS backend when available.
+
+### Daily Usage
+
+```bash
+# Start daemon (keep this terminal open)
+uv run spkezy-daemon
+
+# In another terminal, control recording
+uv run spkezy status
+uv run spkezy toggle   # start recording
+uv run spkezy toggle   # stop + transcribe + copy to clipboard
+
+# Stop daemon when done
+uv run spkezy shutdown
+```
+
 ## Details
 
 ### Config File

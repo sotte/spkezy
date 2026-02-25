@@ -240,6 +240,43 @@ def auto_type_text(text: str, delay_ms: int, log=None):
         raise
 
 
+def _mps_available(torch_module: Any) -> bool:
+    backends = getattr(torch_module, "backends", None)
+    if backends is None:
+        return False
+    mps_backend = getattr(backends, "mps", None)
+    if mps_backend is None:
+        return False
+    checker = getattr(mps_backend, "is_available", None)
+    if checker is None:
+        return False
+    return bool(checker())
+
+
+def select_inference_device(torch_module: Any, force_cpu: bool, log: Any) -> str:
+    if force_cpu:
+        log.info("device_detected", device="cpu", note="Forced CPU mode (--cpu flag)")
+        return "cpu"
+
+    if torch_module.cuda.is_available():
+        gpu_name = torch_module.cuda.get_device_name(0)
+        cap = torch_module.cuda.get_device_capability()
+        log.info(
+            "device_detected",
+            device="cuda",
+            gpu=gpu_name,
+            cuda_capability=f"{cap[0]}.{cap[1]}",
+        )
+        return "cuda"
+
+    if _mps_available(torch_module):
+        log.info("device_detected", device="mps", note="Using Apple Silicon GPU (MPS)")
+        return "mps"
+
+    log.info("device_detected", device="cpu", note="No CUDA or MPS GPU detected")
+    return "cpu"
+
+
 ########################################################################################
 # Model Loading
 def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
@@ -254,35 +291,21 @@ def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
     import torch
 
     # Detect device
-    use_cuda = torch.cuda.is_available() and not force_cpu
-    device = "cuda" if use_cuda else "cpu"
-
-    # Log device info
-    if torch.cuda.is_available():
-        gpu_name = torch.cuda.get_device_name(0)
-        if use_cuda:
-            cap = torch.cuda.get_device_capability()
-            log.info(
-                "device_detected",
-                device="cuda",
-                gpu=gpu_name,
-                cuda_capability=f"{cap[0]}.{cap[1]}",
-            )
-        else:
-            log.info(
-                "device_detected",
-                device="cpu",
-                note="GPU available but using CPU (--cpu flag)",
-                gpu=gpu_name,
-            )
-    else:
-        log.info("device_detected", device="cpu", note="No CUDA GPU detected")
+    device = select_inference_device(torch, force_cpu, log)
 
     # Load model
     t_start = time.perf_counter()
     model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
-    # Move to device
-    model.to(device)
+    # Move to device; if accelerator transfer fails, fall back to CPU.
+    try:
+        model.to(device)
+    except Exception as exc:
+        if device != "cpu":
+            log.warning("device_fallback_to_cpu", from_device=device, error=str(exc))
+            device = "cpu"
+            model.to(device)
+        else:
+            raise
     model.eval()
     t_end = time.perf_counter()
 
