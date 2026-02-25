@@ -1,4 +1,4 @@
-# `spkezy` - automatic speech recognition (ASR) for Linux on your computer
+# `spkezy` - automatic speech recognition (ASR) for your computer
 
 **spkezy** stands for **speakeasy**, it is an open-source local automatic speech recognition tool using [NVIDIA NeMo Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3).
 
@@ -19,8 +19,8 @@
 ## Getting Started
 
 ```bash
-# Install dependencies
-uv sync
+# Recommended setup (auto-detects macOS and installs extras)
+make setup
 
 # Run via uv
 uv run spkezy-daemon
@@ -30,6 +30,41 @@ uv run spkezy toggle
 # End recording, start transcription, and copy result to clipboard
 uv run spkezy toggle
 ```
+
+On macOS, `make setup` installs `portaudio`, `Maccy`, and `Hammerspoon`, writes
+`~/.hammerspoon/init.lua` for context-aware auto-paste (including an absolute `uv` path),
+and prints hotkey instructions.
+
+### macOS First Run Checklist
+
+- Grant microphone access to your terminal app when prompted.
+- If using `autotype`, grant Accessibility access to your terminal app:
+  - System Settings -> Privacy & Security -> Accessibility
+- Optional: enable notifications for your terminal app if you want daemon notifications.
+- On Apple Silicon, `spkezy-daemon` automatically uses the Metal/MPS backend when available.
+
+### Daily Usage
+
+```bash
+# Start daemon (keep this terminal open)
+uv run spkezy-daemon
+# or use your MacBook Air mic (device id 3)
+uv run spkezy-daemon --input-device 3
+# or with Makefile target
+make daemon-mac
+
+# In another terminal, control recording
+uv run spkezy status
+uv run spkezy toggle   # start recording
+uv run spkezy toggle   # stop + transcribe + copy to clipboard
+
+# Stop daemon when done
+uv run spkezy shutdown
+```
+
+If Hammerspoon is configured (via `make setup` on macOS), use `Ctrl+Option+'`:
+- first press starts recording
+- second press stops/transcribes, then returns to the app/window active at start-time and pastes clipboard text
 
 ## Details
 
@@ -62,8 +97,10 @@ post_clipboard_action = "none" # "none" | "autotype"
 autotype_delay_ms = 0          # Keystroke delay in ms for autotype
 ```
 
-Notes: `autotype` is Wayland-only and requires `wtype`.
-Set `autotype_delay_ms` to add a per-keystroke delay; `0` keeps current speed. Some applications can't handle a delay of 0.
+Notes:
+- Linux: `autotype` is Wayland-only and requires `wtype`.
+- macOS: `autotype` uses AppleScript (`osascript`) and requires Accessibility permission for your terminal app (System Settings -> Privacy & Security -> Accessibility).
+- Set `autotype_delay_ms` to add a per-keystroke delay; `0` keeps current speed. Some applications can't handle a delay of 0.
 
 ### LLM Post-Processing of Transcripts
 
@@ -123,6 +160,16 @@ bind = $mainMod SHIFT CONTROL ALT, R, exec, uv run --project /path/to/spkezy spk
 ```
 
 Replace `/path/to/spkezy` with your installation directory.
+
+### macOS Hotkey Integration
+
+On macOS, bind a global shortcut in your preferred automation tool and run:
+
+```bash
+uv run --project /path/to/spkezy spkezy toggle
+```
+
+Good options include Raycast, Keyboard Maestro, BetterTouchTool, Hammerspoon, and Karabiner-Elements.
 
 ## Development
 

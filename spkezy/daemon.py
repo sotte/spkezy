@@ -17,7 +17,7 @@ from typing import Any
 import structlog
 
 from spkezy.io import DaemonState, StateManager, UnixSocketServer
-from spkezy.output import is_wayland_session, load_output_config
+from spkezy.output import is_autotype_supported, load_output_config
 from spkezy.postprocess import load_postprocess_config, postprocess_transcript
 from spkezy.runtime import get_socket_path
 from spkezy.stats import record_stats
@@ -150,14 +150,46 @@ def setup_signal_handlers(state_manager: StateManager):
 
 ########################################################################################
 # Notifications & Audio Feedback
+def _escape_applescript_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def get_notification_command(title: str, message: str) -> list[str]:
+    if sys.platform == "darwin":
+        escaped_title = _escape_applescript_string(title)
+        escaped_message = _escape_applescript_string(message)
+        script = f'display notification "{escaped_message}" with title "{escaped_title}"'
+        return ["osascript", "-e", script]
+    return ["notify-send", "-u", "normal", "-t", "2000", title, message]
+
+
+def get_sound_command(sound_file: Path) -> list[str]:
+    player = "afplay" if sys.platform == "darwin" else "paplay"
+    return [player, str(sound_file)]
+
+
+def get_autotype_command(text: str, delay_ms: int) -> list[str]:
+    if sys.platform == "darwin":
+        escaped_text = _escape_applescript_string(text)
+        script = f'tell application "System Events" to keystroke "{escaped_text}"'
+        return ["osascript", "-e", script]
+
+    command = ["wtype"]
+    if delay_ms > 0:
+        command.extend(["-d", str(delay_ms)])
+    command.append(text)
+    return command
+
+
 def send_notification(title: str, message: str, enabled: bool = True, log=None):
-    """Send desktop notification via notify-send."""
+    """Send desktop notification using platform-specific backend."""
     if not enabled:
         return
 
     try:
+        command = get_notification_command(title, message)
         subprocess.run(
-            ["notify-send", "-u", "normal", "-t", "2000", title, message],
+            command,
             check=False,
             capture_output=True,
         )
@@ -169,14 +201,15 @@ def send_notification(title: str, message: str, enabled: bool = True, log=None):
 
 
 def play_sound(log=None):
-    """Play sound.mp3 via paplay (non-blocking)."""
+    """Play sound.mp3 via platform-specific command (non-blocking)."""
     try:
         sound_file = Path(__file__).parent / "sound.mp3"
         if not sound_file.exists():
             return
 
+        command = get_sound_command(sound_file)
         subprocess.Popen(
-            ["paplay", str(sound_file)],
+            command,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -186,12 +219,9 @@ def play_sound(log=None):
 
 
 def auto_type_text(text: str, delay_ms: int, log=None):
-    """Auto-type text using wtype (Wayland)."""
+    """Auto-type text using platform-specific backend."""
     try:
-        command = ["wtype"]
-        if delay_ms > 0:
-            command.extend(["-d", str(delay_ms)])
-        command.append(text)
+        command = get_autotype_command(text, delay_ms)
         subprocess.run(
             command,
             check=True,
@@ -201,12 +231,50 @@ def auto_type_text(text: str, delay_ms: int, log=None):
             log.info("auto_typed", length=len(text), delay_ms=delay_ms)
     except FileNotFoundError:
         if log:
-            log.warning("wtype_not_found", message="install wtype package")
+            tool_name = "osascript" if sys.platform == "darwin" else "wtype"
+            log.warning("autotype_tool_not_found", tool=tool_name)
         raise
     except subprocess.CalledProcessError as e:
         if log:
             log.warning("wtype_failed", exit_code=e.returncode, stderr=e.stderr.decode())
         raise
+
+
+def _mps_available(torch_module: Any) -> bool:
+    backends = getattr(torch_module, "backends", None)
+    if backends is None:
+        return False
+    mps_backend = getattr(backends, "mps", None)
+    if mps_backend is None:
+        return False
+    checker = getattr(mps_backend, "is_available", None)
+    if checker is None:
+        return False
+    return bool(checker())
+
+
+def select_inference_device(torch_module: Any, force_cpu: bool, log: Any) -> str:
+    if force_cpu:
+        log.info("device_detected", device="cpu", note="Forced CPU mode (--cpu flag)")
+        return "cpu"
+
+    if torch_module.cuda.is_available():
+        gpu_name = torch_module.cuda.get_device_name(0)
+        cap = torch_module.cuda.get_device_capability()
+        log.info(
+            "device_detected",
+            device="cuda",
+            gpu=gpu_name,
+            cuda_capability=f"{cap[0]}.{cap[1]}",
+        )
+        return "cuda"
+
+    if _mps_available(torch_module):
+        log.info("device_detected", device="mps", note="Using Apple Silicon GPU (MPS)")
+        return "mps"
+
+    log.info("device_detected", device="cpu", note="No CUDA or MPS GPU detected")
+    return "cpu"
 
 
 ########################################################################################
@@ -223,35 +291,21 @@ def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
     import torch
 
     # Detect device
-    use_cuda = torch.cuda.is_available() and not force_cpu
-    device = "cuda" if use_cuda else "cpu"
-
-    # Log device info
-    if torch.cuda.is_available():
-        gpu_name = torch.cuda.get_device_name(0)
-        if use_cuda:
-            cap = torch.cuda.get_device_capability()
-            log.info(
-                "device_detected",
-                device="cuda",
-                gpu=gpu_name,
-                cuda_capability=f"{cap[0]}.{cap[1]}",
-            )
-        else:
-            log.info(
-                "device_detected",
-                device="cpu",
-                note="GPU available but using CPU (--cpu flag)",
-                gpu=gpu_name,
-            )
-    else:
-        log.info("device_detected", device="cpu", note="No CUDA GPU detected")
+    device = select_inference_device(torch, force_cpu, log)
 
     # Load model
     t_start = time.perf_counter()
     model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v3")
-    # Move to device
-    model.to(device)
+    # Move to device; if accelerator transfer fails, fall back to CPU.
+    try:
+        model.to(device)
+    except Exception as exc:
+        if device != "cpu":
+            log.warning("device_fallback_to_cpu", from_device=device, error=str(exc))
+            device = "cpu"
+            model.to(device)
+        else:
+            raise
     model.eval()
     t_end = time.perf_counter()
 
@@ -371,7 +425,7 @@ def handle_transcript_output(
     if post_clipboard_action == "none":
         return
 
-    if not is_wayland_session():
+    if not is_autotype_supported():
         log.warning("output_action_unsupported", action=post_clipboard_action)
         return
 

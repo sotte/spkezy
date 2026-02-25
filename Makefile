@@ -3,12 +3,34 @@
 
 UV := uv
 UV_RUN := $(UV) run
+INPUT_DEVICE ?=
+DAEMON_INPUT_ARG := $(if $(INPUT_DEVICE),--input-device $(INPUT_DEVICE),)
 
 .DEFAULT_GOAL := help
 
 ################################################################################
 ##@ Setup
 setup: ## Install dependencies (CPU version)
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+		if ! command -v brew >/dev/null 2>&1; then \
+			echo "❌ Homebrew is required on macOS. Install from https://brew.sh"; \
+			exit 1; \
+		fi; \
+		echo "🍺 Installing macOS dependencies (portaudio, Maccy, Hammerspoon)..."; \
+		brew install portaudio; \
+		brew install --cask maccy hammerspoon; \
+		UV_BIN="$$(command -v uv || echo uv)"; \
+		mkdir -p "$$HOME/.hammerspoon"; \
+		sed -e "s|__SPKEZY_PATH__|$$(pwd)|g" -e "s|__UV_BIN__|$$UV_BIN|g" docs/macos-hammerspoon.lua > "$$HOME/.hammerspoon/init.lua"; \
+		echo ""; \
+		echo "✅ macOS setup complete."; \
+		echo "Next steps:"; \
+		echo "  1) Open Hammerspoon and click Reload Config"; \
+		echo "  2) Grant Accessibility permission to Hammerspoon"; \
+		echo "  3) Start daemon with built-in mic: make daemon-mac"; \
+		echo "  4) Use hotkey Ctrl+Option+' to start/stop dictation and auto-paste."; \
+		echo ""; \
+	fi
 	$(UV) sync
 
 setup-gpu: ## Install dependencies (GPU/CUDA 12.1)
@@ -17,10 +39,13 @@ setup-gpu: ## Install dependencies (GPU/CUDA 12.1)
 ################################################################################
 ##@ Daemon Control
 daemon: ## Start daemon
-	$(UV_RUN) spkezy-daemon
+	$(UV_RUN) spkezy-daemon $(DAEMON_INPUT_ARG)
 
 daemon-debug: ## Start daemon with debug output
-	$(UV_RUN) spkezy-daemon --debug
+	$(UV_RUN) spkezy-daemon --debug $(DAEMON_INPUT_ARG)
+
+daemon-mac: ## Start daemon with MacBook Air microphone (device id 3)
+	$(UV_RUN) spkezy-daemon --input-device 3
 
 shutdown: ## Shutdown daemon
 	$(UV_RUN) spkezy shutdown
