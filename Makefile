@@ -19,15 +19,16 @@ setup: ## Install dependencies (CPU version)
 		echo "🍺 Installing macOS dependencies (portaudio, Maccy, Hammerspoon)..."; \
 		brew install portaudio; \
 		brew install --cask maccy hammerspoon; \
+		UV_BIN="$$(command -v uv || echo uv)"; \
 		mkdir -p "$$HOME/.hammerspoon"; \
-		sed "s|__SPKEZY_PATH__|$$(pwd)|g" docs/macos-hammerspoon.lua > "$$HOME/.hammerspoon/init.lua"; \
+		sed -e "s|__SPKEZY_PATH__|$$(pwd)|g" -e "s|__UV_BIN__|$$UV_BIN|g" docs/macos-hammerspoon.lua > "$$HOME/.hammerspoon/init.lua"; \
 		echo ""; \
 		echo "✅ macOS setup complete."; \
 		echo "Next steps:"; \
 		echo "  1) Open Hammerspoon and click Reload Config"; \
 		echo "  2) Grant Accessibility permission to Hammerspoon"; \
 		echo "  3) Start daemon with built-in mic: make daemon-mac"; \
-		echo "  4) Use hotkey Cmd+Shift+D to start/stop dictation and auto-paste."; \
+		echo "  4) Use hotkey Ctrl+Option+' to start/stop dictation and auto-paste."; \
 		echo ""; \
 	fi
 	$(UV) sync

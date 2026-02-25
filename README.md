@@ -32,7 +32,8 @@ uv run spkezy toggle
 ```
 
 On macOS, `make setup` installs `portaudio`, `Maccy`, and `Hammerspoon`, writes
-`~/.hammerspoon/init.lua` for context-aware auto-paste, and prints hotkey instructions.
+`~/.hammerspoon/init.lua` for context-aware auto-paste (including an absolute `uv` path),
+and prints hotkey instructions.
 
 ### macOS First Run Checklist
 
@@ -61,9 +62,9 @@ uv run spkezy toggle   # stop + transcribe + copy to clipboard
 uv run spkezy shutdown
 ```
 
-If Hammerspoon is configured (via `make setup` on macOS), use `Cmd+Shift+D`:
+If Hammerspoon is configured (via `make setup` on macOS), use `Ctrl+Option+'`:
 - first press starts recording
-- second press stops, transcribes, and pastes into the focused app/text field
+- second press stops/transcribes, then returns to the app/window active at start-time and pastes clipboard text
 
 ## Details
 
