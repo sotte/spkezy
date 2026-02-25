@@ -19,11 +19,8 @@
 ## Getting Started
 
 ```bash
-# macOS setup (Apple Silicon / Intel)
-brew install portaudio
-
-# Install dependencies
-uv sync
+# Recommended setup (auto-detects macOS and installs extras)
+make setup
 
 # Run via uv
 uv run spkezy-daemon
@@ -33,6 +30,9 @@ uv run spkezy toggle
 # End recording, start transcription, and copy result to clipboard
 uv run spkezy toggle
 ```
+
+On macOS, `make setup` installs `portaudio`, `Maccy`, and `Hammerspoon`, writes
+`~/.hammerspoon/init.lua` for context-aware auto-paste, and prints hotkey instructions.
 
 ### macOS First Run Checklist
 
@@ -47,6 +47,10 @@ uv run spkezy toggle
 ```bash
 # Start daemon (keep this terminal open)
 uv run spkezy-daemon
+# or use your MacBook Air mic (device id 3)
+uv run spkezy-daemon --input-device 3
+# or with Makefile target
+make daemon-mac
 
 # In another terminal, control recording
 uv run spkezy status
@@ -56,6 +60,10 @@ uv run spkezy toggle   # stop + transcribe + copy to clipboard
 # Stop daemon when done
 uv run spkezy shutdown
 ```
+
+If Hammerspoon is configured (via `make setup` on macOS), use `Cmd+Shift+D`:
+- first press starts recording
+- second press stops, transcribes, and pastes into the focused app/text field
 
 ## Details
 
