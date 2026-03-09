@@ -15,9 +15,9 @@ class OutputConfig:
     autotype_delay_ms: int = 0
 
 
-def load_output_config(log: Any | None = None) -> OutputConfig:
-    data = load_toml_config(log)
-    section = data.get("output", {})
+def load_output_config(log: Any | None = None, data: dict[str, Any] | None = None) -> OutputConfig:
+    config_data = data if data is not None else load_toml_config(log)
+    section = config_data.get("output", {})
     config = OutputConfig()
 
     if isinstance(section, dict):

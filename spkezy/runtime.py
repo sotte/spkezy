@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tomllib
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -36,14 +37,29 @@ def get_socket_path(override: str | None = None) -> Path:
     return Path("/tmp") / "spkezy-daemon.sock"
 
 
+@lru_cache(maxsize=32)
+def _load_toml_config_cached(path_str: str, mtime_ns: int | None) -> dict[str, Any]:
+    path = Path(path_str)
+    if mtime_ns is None or not path.exists():
+        return {}
+    return tomllib.loads(path.read_text(encoding="utf-8"))
+
+
+def clear_toml_config_cache() -> None:
+    _load_toml_config_cached.cache_clear()
+
+
 def load_toml_config(log: Any | None = None) -> dict[str, Any]:
     path = get_config_path()
-    if not path.exists():
-        return {}
+    mtime_ns = path.stat().st_mtime_ns if path.exists() else None
 
     try:
-        return tomllib.loads(path.read_text(encoding="utf-8"))
+        data = _load_toml_config_cached(str(path), mtime_ns)
+        if log:
+            event = "config_loaded" if mtime_ns is not None else "config_not_found"
+            log.info(event, path=str(path))
+        return data
     except Exception as exc:
         if log:
-            log.warning("config_read_failed", error=str(exc))
+            log.warning("config_read_failed", path=str(path), error=str(exc))
         return {}

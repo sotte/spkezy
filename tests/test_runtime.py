@@ -4,6 +4,13 @@ from spkezy import runtime
 pytestmark = pytest.mark.unit
 
 
+@pytest.fixture(autouse=True)
+def clear_config_cache_between_tests():
+    runtime.clear_toml_config_cache()
+    yield
+    runtime.clear_toml_config_cache()
+
+
 class LogSpy:
     def __init__(self):
         self.warnings: list[tuple[str, dict]] = []
@@ -102,3 +109,19 @@ def test_load_toml_config_logs_warning_and_returns_empty_on_parse_error(monkeypa
 
     assert config == {}
     assert log.warnings
+
+
+def test_load_toml_config_refreshes_when_file_changes(monkeypatch, tmp_path):
+    config_dir = tmp_path / "spkezy"
+    config_dir.mkdir()
+    config_file = config_dir / "config.toml"
+    config_file.write_text("[output]\npost_clipboard_action = 'none'\n", encoding="utf-8")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+
+    original = runtime.load_toml_config()
+    config_file.write_text("[output]\npost_clipboard_action = 'autotype'\n", encoding="utf-8")
+
+    updated = runtime.load_toml_config()
+
+    assert original["output"]["post_clipboard_action"] == "none"
+    assert updated["output"]["post_clipboard_action"] == "autotype"

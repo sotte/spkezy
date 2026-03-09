@@ -15,10 +15,10 @@ class StatsConfig:
     store_transcripts: bool = True
 
 
-def load_stats_config(log: Any | None = None) -> StatsConfig:
-    data = load_toml_config(log)
+def load_stats_config(log: Any | None = None, data: dict[str, Any] | None = None) -> StatsConfig:
+    config_data = data if data is not None else load_toml_config(log)
     config = StatsConfig()
-    stats_section = data.get("stats")
+    stats_section = config_data.get("stats")
     if isinstance(stats_section, dict):
         store_transcripts = stats_section.get("store_transcripts")
         if isinstance(store_transcripts, bool):
@@ -30,7 +30,8 @@ def record_stats(
     recording_duration_ms: int,
     transcription_duration_ms: int,
     transcript: str,
-    device: str,
+    compute_device: str,
+    audio_input_device: str,
 ) -> None:
     """Record a transcription event to daily JSONL files."""
     config = load_stats_config()
@@ -52,7 +53,8 @@ def record_stats(
         "transcription_duration_ms": transcription_duration_ms,
         "transcript_chars": len(transcript),
         "transcript_words": len(transcript.split()),
-        "device": device,
+        "compute_device": compute_device,
+        "audio_input_device": audio_input_device,
     }
     with open(stats_file, "a") as f:
         f.write(json.dumps(stats_entry) + "\n")
@@ -199,15 +201,36 @@ def show_stats(num_months: int = 3) -> None:
     intensity_chars = [" ", "░", "▒", "▓", "█"]
     intensity_colors = ["bright_black", "dim green", "green", "bright_green", "bold bright_green"]
 
+    # Find the max count across all visible dates for linear scaling
+    max_count = 0
+    for week in range(num_weeks):
+        for day_idx in range(7):
+            day_date = grid_start + timedelta(weeks=week, days=day_idx + 1)
+            if day_date > today:
+                continue
+            date_str = day_date.strftime("%Y-%m-%d")
+            count = by_day.get(date_str, DayStats(date_str)).count
+            if count > max_count:
+                max_count = count
+
+    # Compute linear thresholds from max (4 equal-ish bands)
+    if max_count <= 4:
+        thresholds = [1, 2, 3, 4]
+    else:
+        step = max_count / 4
+        thresholds = [
+            max(1, round(step)),
+            max(2, round(step * 2)),
+            max(3, round(step * 3)),
+            max_count,
+        ]
+
     def get_intensity(count: int) -> int:
         if count == 0:
             return 0
-        if count <= 2:
-            return 1
-        if count <= 5:
-            return 2
-        if count <= 10:
-            return 3
+        for level, threshold in enumerate(thresholds, start=1):
+            if count <= threshold:
+                return level
         return 4
 
     # Build month labels for x-axis
@@ -272,7 +295,18 @@ def show_stats(num_months: int = 3) -> None:
         console.print(row)
 
     console.print()
-    console.print("[dim]Legend:   none  ░ 1-2  ▒ 3-5  ▓ 6-10  █ 11+[/dim]")
+    # Build legend from computed thresholds
+    legend_parts = ["none"]
+    prev = 0
+    for i, threshold in enumerate(thresholds):
+        char = intensity_chars[i + 1]
+        low = prev + 1
+        if low == threshold:
+            legend_parts.append(f"{char} {low}")
+        else:
+            legend_parts.append(f"{char} {low}-{threshold}")
+        prev = threshold
+    console.print(f"[dim]Legend:   {'  '.join(legend_parts)}[/dim]")
     console.print()
 
     # Summary table

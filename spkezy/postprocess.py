@@ -25,9 +25,11 @@ class PostprocessConfig:
     prompt_override: str | None = None
 
 
-def load_postprocess_config(log: Any | None = None) -> PostprocessConfig:
-    data = load_toml_config(log)
-    section = data.get("postprocess_llm", {})
+def load_postprocess_config(
+    log: Any | None = None, data: dict[str, Any] | None = None
+) -> PostprocessConfig:
+    config_data = data if data is not None else load_toml_config(log)
+    section = config_data.get("postprocess_llm", {})
     config = PostprocessConfig()
 
     if isinstance(section, dict):

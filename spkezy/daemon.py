@@ -16,10 +16,11 @@ from typing import Any
 
 import structlog
 
+from spkezy.audio import load_audio_config, resolve_audio_input
 from spkezy.io import DaemonState, StateManager, UnixSocketServer
 from spkezy.output import is_wayland_session, load_output_config
 from spkezy.postprocess import load_postprocess_config, postprocess_transcript
-from spkezy.runtime import get_socket_path
+from spkezy.runtime import get_socket_path, load_toml_config
 from spkezy.stats import record_stats
 
 
@@ -60,9 +61,8 @@ def parse_arguments():
     )
     parser.add_argument(
         "--input-device",
-        type=int,
         default=None,
-        help="PyAudio input device index",
+        help="PyAudio input device index, exact name, or 'auto'/'default'",
     )
     parser.add_argument(
         "--socket-path",
@@ -413,16 +413,30 @@ def main():
     log = configure_logging(args.debug, args.log_file)
     socket_path = get_socket_path(args.socket_path)
     state_manager = StateManager()
-    postprocess_config = load_postprocess_config(log)
+    config_data = load_toml_config(log)
+    postprocess_config = load_postprocess_config(log, data=config_data)
     try:
-        output_config = load_output_config(log)
+        output_config = load_output_config(log, data=config_data)
+        audio_config = load_audio_config(log, data=config_data)
     except ValueError as exc:
-        log.error("output_config_invalid", error=str(exc))
+        log.error("config_invalid", error=str(exc))
         return 1
 
     setup_signal_handlers(state_manager)
 
     log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
+
+    selected_input_device = (
+        args.input_device if args.input_device is not None else audio_config.input_device
+    )
+    try:
+        input_device_index, input_sample_rate, input_device_name = resolve_audio_input(
+            selected_input_device,
+            log=log,
+        )
+    except ValueError as exc:
+        log.error("audio_input_invalid", input_device=selected_input_device, error=str(exc))
+        return 1
 
     send_notification(
         "🥃 spkezy - Loading Model",
@@ -445,12 +459,18 @@ def main():
 
     send_notification(
         "🥃 spkezy - Ready",
-        f"Model loaded on {device}",
+        f"Model loaded on {device}; input {input_device_name} @ {input_sample_rate}Hz",
         not args.no_notifications,
         log,
     )
 
-    log.info("daemon_ready", commands=["start", "stop", "toggle", "status", "shutdown"])
+    log.info(
+        "daemon_ready",
+        commands=["start", "stop", "toggle", "status", "shutdown"],
+        input_device=input_device_name,
+        input_device_index=input_device_index,
+        input_sample_rate=input_sample_rate,
+    )
 
     # Main loop
     try:
@@ -474,8 +494,8 @@ def main():
             # Record audio
             audio_data = record_audio(
                 state_manager,
-                sample_rate=16000,
-                device_index=args.input_device,
+                sample_rate=input_sample_rate,
+                device_index=input_device_index,
                 log=log,
             )
 
@@ -497,7 +517,7 @@ def main():
 
             # Save to temp file
             try:
-                temp_path = save_audio_to_wav(audio_data)
+                temp_path = save_audio_to_wav(audio_data, sample_rate=input_sample_rate)
             except Exception as e:
                 log.error("audio_save_failed", error=str(e))
                 state_manager.set_state(DaemonState.IDLE)
@@ -557,7 +577,8 @@ def main():
                     recording_duration_ms=recording_duration_ms,
                     transcription_duration_ms=transcription_duration_ms,
                     transcript=transcript,
-                    device=device,
+                    compute_device=device,
+                    audio_input_device=input_device_name,
                 )
             except Exception as e:
                 log.warning("stats_recording_failed", error=str(e))

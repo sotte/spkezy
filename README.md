@@ -38,6 +38,9 @@ uv run spkezy toggle
 Location: `$XDG_CONFIG_HOME/spkezy/config.toml` (or `~/.config/spkezy/config.toml`)
 
 ```toml
+[audio]                         # See "Audio Input" section
+input_device = "auto"          # "auto" | "default" | exact device name | numeric id
+
 [output]                        # See "Output Behavior" section
 post_clipboard_action = "none"  # "none" | "autotype" (see Output Behavior)
 autotype_delay_ms = 0           # Keystroke delay in ms for autotype
@@ -49,6 +52,29 @@ model = "gpt-4o-mini"
 preferred_terms = ["foo", "bar"]
 prompt_override = "Translate to German."
 ```
+
+### Audio Input
+
+By default, `spkezy` uses `auto`, which prefers `sysdefault` when available and otherwise falls
+back to PortAudio's default input device. This lets the system audio stack handle device routing
+and resampling when possible, while still working on systems without `sysdefault`.
+
+```toml
+# $XDG_CONFIG_HOME/spkezy/config.toml
+[audio]
+input_device = "auto" # "auto" | "default" | exact device name | numeric id
+```
+
+You can inspect available devices with:
+
+```bash
+spkezy-daemon --list-devices
+```
+
+If you specify a named device, use the exact name shown by `spkezy-daemon --list-devices`.
+
+The daemon validates the configured input device and sample rate during startup before loading the
+speech model, and fails fast if it cannot open the stream.
 
 ### Output Behavior
 
@@ -90,7 +116,8 @@ Note: Set your `OPENAI_API_KEY` API key in the environment to use this feature.
 
 Location: `$XDG_DATA_HOME/spkezy/stats/` (or `~/.local/share/spkezy/stats/`)
 
-Daily JSONL files track each transcription: recording duration, transcription time, word count, and device.
+Daily JSONL files track each transcription: recording duration, transcription time, word count,
+compute device, and audio input device.
 The `spkezy stats` command displays a GitHub-style activity heatmap and summary table (today/week/month/all-time) with streak tracking.
 
 ```bash
@@ -131,6 +158,7 @@ Replace `/path/to/spkezy` with your installation directory.
 ├── spkezy/
 │   ├── __init__.py         # Package marker (empty)
 │   ├── __main__.py         # CLI entrypoint (client + daemon wrapper)
+│   ├── audio.py            # Audio config + device/sample-rate selection
 │   ├── daemon.py           # Daemon loop, recording, transcription
 │   ├── io.py               # Unix socket server + client send logic
 │   ├── output.py           # Output config + clipboard/autotype helpers

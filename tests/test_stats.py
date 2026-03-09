@@ -14,7 +14,8 @@ def test_record_stats_writes_stats_and_transcript_entries(monkeypatch, tmp_path)
         recording_duration_ms=1200,
         transcription_duration_ms=3400,
         transcript="hello world",
-        device="cpu",
+        compute_device="cpu",
+        audio_input_device="sysdefault",
     )
 
     date_str = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -31,7 +32,8 @@ def test_record_stats_writes_stats_and_transcript_entries(monkeypatch, tmp_path)
     assert stats_entry["transcription_duration_ms"] == 3400
     assert stats_entry["transcript_chars"] == len("hello world")
     assert stats_entry["transcript_words"] == 2
-    assert stats_entry["device"] == "cpu"
+    assert stats_entry["compute_device"] == "cpu"
+    assert stats_entry["audio_input_device"] == "sysdefault"
     assert transcript_entry["text"] == "hello world"
 
 
@@ -50,7 +52,8 @@ def test_record_stats_skips_transcript_write_when_disabled(monkeypatch, tmp_path
         recording_duration_ms=1200,
         transcription_duration_ms=3400,
         transcript="hello world",
-        device="cpu",
+        compute_device="cpu",
+        audio_input_device="sysdefault",
     )
 
     date_str = datetime.now(UTC).strftime("%Y-%m-%d")
