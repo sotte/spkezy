@@ -54,7 +54,7 @@ class FakeSocketServer:
         self.cleaned_up = True
 
 
-def make_args(*, input_device=None):
+def make_args(*, input_device=None, no_notifications=True):
     return argparse.Namespace(
         debug=False,
         cpu=False,
@@ -62,7 +62,7 @@ def make_args(*, input_device=None):
         list_devices=False,
         input_device=input_device,
         socket_path=None,
-        no_notifications=True,
+        no_notifications=no_notifications,
     )
 
 
@@ -169,3 +169,46 @@ def test_main_cli_input_device_overrides_config(monkeypatch):
 
     assert result == 0
     assert selected_devices == ["sysdefault"]
+
+
+def test_main_sends_error_notification_when_audio_input_is_invalid(monkeypatch):
+    args = make_args(no_notifications=False)
+    setup_main_dependencies(monkeypatch, args)
+    monkeypatch.setattr(
+        daemon,
+        "load_audio_config",
+        lambda log=None, data=None: AudioConfig(input_device="auto"),
+    )
+    monkeypatch.setattr(
+        daemon,
+        "resolve_audio_input",
+        lambda device_spec, log=None: (_ for _ in ()).throw(ValueError("Device busy")),
+    )
+
+    notifications: list[tuple[str, bool]] = []
+
+    def fake_send_error_notification(error: str, enabled: bool = True, log=None):
+        notifications.append((error, enabled))
+
+    monkeypatch.setattr(daemon, "send_error_notification", fake_send_error_notification)
+
+    result = daemon.main()
+
+    assert result == 1
+    assert notifications == [("Device busy", True)]
+
+
+def test_send_error_notification_truncates_message(monkeypatch):
+    sent: list[tuple[str, str, bool]] = []
+
+    def fake_send_notification(title: str, message: str, enabled: bool = True, log=None):
+        sent.append((title, message, enabled))
+
+    monkeypatch.setattr(daemon, "send_notification", fake_send_notification)
+
+    daemon.send_error_notification("x" * 400, enabled=True)
+
+    assert sent[0][0] == "🥃 spkezy - Error"
+    assert sent[0][2] is True
+    assert sent[0][1].endswith("...")
+    assert len(sent[0][1]) == 220

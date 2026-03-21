@@ -168,6 +168,15 @@ def send_notification(title: str, message: str, enabled: bool = True, log=None):
             log.warning("notification_failed", error=str(e))
 
 
+def send_error_notification(error: str, enabled: bool = True, log=None):
+    """Send a visible notification for startup/runtime errors."""
+    message = " ".join(error.split())
+    max_length = 220
+    if len(message) > max_length:
+        message = f"{message[: max_length - 3]}..."
+    send_notification("🥃 spkezy - Error", message or "Unknown error", enabled, log)
+
+
 def play_sound(log=None):
     """Play sound.mp3 via paplay (non-blocking)."""
     try:
@@ -419,7 +428,9 @@ def main():
         output_config = load_output_config(log, data=config_data)
         audio_config = load_audio_config(log, data=config_data)
     except ValueError as exc:
-        log.error("config_invalid", error=str(exc))
+        error_message = str(exc)
+        log.error("config_invalid", error=error_message)
+        send_error_notification(error_message, not args.no_notifications, log)
         return 1
 
     setup_signal_handlers(state_manager)
@@ -435,7 +446,9 @@ def main():
             log=log,
         )
     except ValueError as exc:
-        log.error("audio_input_invalid", input_device=selected_input_device, error=str(exc))
+        error_message = str(exc)
+        log.error("audio_input_invalid", input_device=selected_input_device, error=error_message)
+        send_error_notification(error_message, not args.no_notifications, log)
         return 1
 
     send_notification(
@@ -449,7 +462,9 @@ def main():
     try:
         model, device = load_model(args.cpu, log)
     except Exception as e:
-        log.error("model_load_failed", error=str(e))
+        error_message = str(e)
+        log.error("model_load_failed", error=error_message)
+        send_error_notification(error_message, not args.no_notifications, log)
         return 1
 
     # Start socket server
