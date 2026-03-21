@@ -55,26 +55,29 @@ prompt_override = "Translate to German."
 
 ### Audio Input
 
-By default, `spkezy` uses `auto`, which prefers `sysdefault` when available and otherwise falls
-back to PortAudio's default input device. This lets the system audio stack handle device routing
-and resampling when possible, while still working on systems without `sysdefault`.
+`spkezy` captures audio via PipeWire (`pw-record`), which automatically uses the system default
+audio source. When you change the default mic in your system settings (e.g. pavucontrol),
+`spkezy` follows the change — no restart needed.
 
 ```toml
 # $XDG_CONFIG_HOME/spkezy/config.toml
 [audio]
-input_device = "auto" # "auto" | "default" | exact device name | numeric id
+input_device = "auto" # "auto" | "default" | PipeWire source name
 ```
 
-You can inspect available devices with:
+You can inspect available sources with:
 
 ```bash
 spkezy-daemon --list-devices
 ```
 
-If you specify a named device, use the exact name shown by `spkezy-daemon --list-devices`.
+The output shows PipeWire audio sources and marks the current system default with `*`.
 
-The daemon validates the configured input device and sample rate during startup before loading the
-speech model, and fails fast if it cannot open the stream.
+To use a specific source instead of the system default, set `input_device` to the full PipeWire
+source name shown by `--list-devices` (e.g. `alsa_input.usb-FIFINE_Microphones-00.iec958-stereo`).
+
+**Requires PipeWire.** The daemon checks for `pw-record` at startup and fails with a clear error
+if it is not available.
 
 ### Output Behavior
 
@@ -158,7 +161,8 @@ Replace `/path/to/spkezy` with your installation directory.
 ├── spkezy/
 │   ├── __init__.py         # Package marker (empty)
 │   ├── __main__.py         # CLI entrypoint (client + daemon wrapper)
-│   ├── audio.py            # Audio config + device/sample-rate selection
+│   ├── audio.py            # Audio input configuration
+│   ├── capture.py          # PipeWire audio capture (pw-record subprocess)
 │   ├── daemon.py           # Daemon loop, recording, transcription
 │   ├── io.py               # Unix socket server + client send logic
 │   ├── output.py           # Output config + clipboard/autotype helpers

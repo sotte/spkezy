@@ -1,0 +1,7 @@
+beans:
+    path: WORKTREE
+    prefix: sk-
+    id_length: 4
+    default_status: todo
+    default_kind: task
+    default_priority: medium

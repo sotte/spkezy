@@ -87,10 +87,12 @@ def setup_main_dependencies(monkeypatch, args):
         "load_output_config",
         lambda log=None, data=None: OutputConfig(),
     )
+    monkeypatch.setattr(daemon, "check_pw_record_available", lambda: None)
+    monkeypatch.setattr(daemon, "get_default_source_name", lambda: "alsa_input.usb-FIFINE-00")
     return fake_log
 
 
-def test_main_fails_before_model_load_when_audio_input_invalid(monkeypatch):
+def test_main_exits_when_pw_record_not_found(monkeypatch):
     args = make_args()
     setup_main_dependencies(monkeypatch, args)
     monkeypatch.setattr(
@@ -100,8 +102,8 @@ def test_main_fails_before_model_load_when_audio_input_invalid(monkeypatch):
     )
     monkeypatch.setattr(
         daemon,
-        "resolve_audio_input",
-        lambda device_spec, log=None: (_ for _ in ()).throw(ValueError("bad device")),
+        "check_pw_record_available",
+        lambda: (_ for _ in ()).throw(RuntimeError("pw-record not found")),
     )
 
     model_load_called = False
@@ -119,7 +121,7 @@ def test_main_fails_before_model_load_when_audio_input_invalid(monkeypatch):
     assert model_load_called is False
 
 
-def test_main_uses_configured_input_device_and_validates_audio_before_model_load(monkeypatch):
+def test_main_uses_auto_capture_target_by_default(monkeypatch):
     args = make_args()
     setup_main_dependencies(monkeypatch, args)
     monkeypatch.setattr(
@@ -128,27 +130,22 @@ def test_main_uses_configured_input_device_and_validates_audio_before_model_load
         lambda log=None, data=None: AudioConfig(input_device="auto"),
     )
 
-    call_order: list[tuple[str, str | None]] = []
-
-    def fake_resolve_audio_input(device_spec, log=None):
-        call_order.append(("resolve_audio_input", device_spec))
-        return 7, 16000, "sysdefault"
+    call_order: list[str] = []
 
     def fake_load_model(force_cpu, log):
-        call_order.append(("load_model", None))
+        call_order.append("load_model")
         return object(), "cpu"
 
-    monkeypatch.setattr(daemon, "resolve_audio_input", fake_resolve_audio_input)
     monkeypatch.setattr(daemon, "load_model", fake_load_model)
 
     result = daemon.main()
 
     assert result == 0
-    assert call_order == [("resolve_audio_input", "auto"), ("load_model", None)]
+    assert "load_model" in call_order
 
 
 def test_main_cli_input_device_overrides_config(monkeypatch):
-    args = make_args(input_device="sysdefault")
+    args = make_args(input_device="alsa_input.usb-C920-02.analog-stereo")
     setup_main_dependencies(monkeypatch, args)
     monkeypatch.setattr(
         daemon,
@@ -156,22 +153,23 @@ def test_main_cli_input_device_overrides_config(monkeypatch):
         lambda log=None, data=None: AudioConfig(input_device="auto"),
     )
 
-    selected_devices: list[str] = []
+    resolve_calls: list[str] = []
+    original_resolve = daemon.resolve_capture_target
 
-    def fake_resolve_audio_input(device_spec, log=None):
-        selected_devices.append(device_spec)
-        return 7, 16000, "sysdefault"
+    def tracking_resolve(device_spec, log=None):
+        resolve_calls.append(device_spec)
+        return original_resolve(device_spec, log=log)
 
-    monkeypatch.setattr(daemon, "resolve_audio_input", fake_resolve_audio_input)
+    monkeypatch.setattr(daemon, "resolve_capture_target", tracking_resolve)
     monkeypatch.setattr(daemon, "load_model", lambda force_cpu, log: (object(), "cpu"))
 
     result = daemon.main()
 
     assert result == 0
-    assert selected_devices == ["sysdefault"]
+    assert resolve_calls == ["alsa_input.usb-C920-02.analog-stereo"]
 
 
-def test_main_sends_error_notification_when_audio_input_is_invalid(monkeypatch):
+def test_main_sends_error_notification_when_pw_record_missing(monkeypatch):
     args = make_args(no_notifications=False)
     setup_main_dependencies(monkeypatch, args)
     monkeypatch.setattr(
@@ -181,8 +179,8 @@ def test_main_sends_error_notification_when_audio_input_is_invalid(monkeypatch):
     )
     monkeypatch.setattr(
         daemon,
-        "resolve_audio_input",
-        lambda device_spec, log=None: (_ for _ in ()).throw(ValueError("Device busy")),
+        "check_pw_record_available",
+        lambda: (_ for _ in ()).throw(RuntimeError("pw-record not found")),
     )
 
     notifications: list[tuple[str, bool]] = []
@@ -195,7 +193,7 @@ def test_main_sends_error_notification_when_audio_input_is_invalid(monkeypatch):
     result = daemon.main()
 
     assert result == 1
-    assert notifications == [("Device busy", True)]
+    assert notifications == [("pw-record not found", True)]
 
 
 def test_send_error_notification_truncates_message(monkeypatch):

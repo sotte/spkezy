@@ -16,7 +16,15 @@ from typing import Any
 
 import structlog
 
-from spkezy.audio import load_audio_config, resolve_audio_input
+from spkezy.audio import load_audio_config, resolve_capture_target
+from spkezy.capture import (
+    SAMPLE_RATE,
+    check_pw_record_available,
+    get_default_source_name,
+    list_pipewire_sources,
+    start_capture,
+    stop_capture,
+)
 from spkezy.io import DaemonState, StateManager, UnixSocketServer
 from spkezy.output import is_wayland_session, load_output_config
 from spkezy.postprocess import load_postprocess_config, postprocess_transcript
@@ -57,12 +65,12 @@ def parse_arguments():
     parser.add_argument(
         "--list-devices",
         action="store_true",
-        help="List audio input devices and exit",
+        help="List PipeWire audio sources and exit",
     )
     parser.add_argument(
         "--input-device",
         default=None,
-        help="PyAudio input device index, exact name, or 'auto'/'default'",
+        help="PipeWire source name, or 'auto'/'default' for system default",
     )
     parser.add_argument(
         "--socket-path",
@@ -113,21 +121,23 @@ def configure_logging(debug: bool, log_file: str | None):
 
 
 def list_audio_devices():
-    """List available audio input devices and exit."""
-    import pyaudio  # Lazy import - only needed for this command
+    """List available PipeWire audio sources and exit."""
+    default_source = get_default_source_name()
+    sources = list_pipewire_sources()
 
-    pa = pyaudio.PyAudio()
-    try:
-        count = pa.get_device_count()
-        print("Input devices:")
-        for i in range(count):
-            info = pa.get_device_info_by_index(i)
-            if int(info.get("maxInputChannels", 0)) > 0:
-                name = info.get("name", "unknown")
-                rate = int(info.get("defaultSampleRate", 0))
-                print(f"- id={i} name='{name}' rate={rate}Hz")
-    finally:
-        pa.terminate()
+    # Filter out monitor sources (they capture output, not input)
+    input_sources = [s for s in sources if ".monitor" not in s["name"]]
+
+    print(f"System default source: {default_source or 'unknown'}")
+    print()
+    print("PipeWire audio sources (* = default):")
+    if not input_sources:
+        print("  (none)")
+        return
+
+    for source in input_sources:
+        marker = "*" if source["name"] == default_source else " "
+        print(f"  {marker} {source['name']}  [{source['format']}]  {source['state']}")
 
 
 def setup_signal_handlers(state_manager: StateManager):
@@ -273,54 +283,41 @@ def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
 # Audio Recording
 def record_audio(
     state_manager: StateManager,
-    sample_rate: int = 16000,
-    device_index: int | None = None,
-    log=None,
+    sample_rate: int = SAMPLE_RATE,
+    capture_target: str | None = None,
+    log: Any | None = None,
 ) -> bytes | None:
-    """Record audio until stop event or shutdown."""
-    import pyaudio  # Lazy import
-
-    p = pyaudio.PyAudio()
-
+    """Record audio via pw-record until stop event or shutdown."""
     try:
-        stream = p.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=sample_rate,
-            input=True,
-            input_device_index=device_index,
-            frames_per_buffer=1024,
-        )
+        proc = start_capture(sample_rate=sample_rate, target=capture_target, log=log)
     except Exception as e:
         if log:
-            log.error("audio_stream_open_failed", error=str(e))
-        p.terminate()
+            log.error("capture_start_failed", error=str(e))
         return None
 
-    frames = []
+    frames: list[bytes] = []
 
     if log:
-        log.info("recording_started")
+        log.info("recording_started", target=capture_target or "system-default")
 
     state_manager.set_state(DaemonState.RECORDING)
 
     try:
         while not state_manager.is_shutdown_requested():
-            # Check for stop signal
             if state_manager.wait_for_stop(timeout=0):
                 if log:
-                    log.info("recording_stopped", frames=len(frames))
+                    log.info("recording_stopped", chunks=len(frames))
                 break
 
-            try:
-                data = stream.read(1024, exception_on_overflow=False)
-                frames.append(data)
-            except Exception:
-                continue
+            assert proc.stdout is not None
+            chunk = proc.stdout.read(2048)
+            if not chunk:
+                break
+            frames.append(chunk)
     finally:
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
+        remaining = stop_capture(proc, log=log)
+        if remaining:
+            frames.append(remaining)
 
     return b"".join(frames) if frames else None
 
@@ -435,21 +432,23 @@ def main():
 
     setup_signal_handlers(state_manager)
 
-    log.info("daemon_starting", version="2.0", socket_path=str(socket_path))
+    log.info("daemon_starting", version="3.0", socket_path=str(socket_path))
+
+    # Verify pw-record is available before doing anything else
+    try:
+        check_pw_record_available()
+    except RuntimeError as exc:
+        error_message = str(exc)
+        log.error("pw_record_not_found", error=error_message)
+        send_error_notification(error_message, not args.no_notifications, log)
+        return 1
 
     selected_input_device = (
         args.input_device if args.input_device is not None else audio_config.input_device
     )
-    try:
-        input_device_index, input_sample_rate, input_device_name = resolve_audio_input(
-            selected_input_device,
-            log=log,
-        )
-    except ValueError as exc:
-        error_message = str(exc)
-        log.error("audio_input_invalid", input_device=selected_input_device, error=error_message)
-        send_error_notification(error_message, not args.no_notifications, log)
-        return 1
+    capture_target = resolve_capture_target(selected_input_device, log=log)
+    default_source = get_default_source_name()
+    input_description = capture_target or default_source or "system-default"
 
     send_notification(
         "🥃 spkezy - Loading Model",
@@ -474,7 +473,7 @@ def main():
 
     send_notification(
         "🥃 spkezy - Ready",
-        f"Model loaded on {device}; input {input_device_name} @ {input_sample_rate}Hz",
+        f"Model loaded on {device}; input: {input_description}",
         not args.no_notifications,
         log,
     )
@@ -482,9 +481,9 @@ def main():
     log.info(
         "daemon_ready",
         commands=["start", "stop", "toggle", "status", "shutdown"],
-        input_device=input_device_name,
-        input_device_index=input_device_index,
-        input_sample_rate=input_sample_rate,
+        capture_target=capture_target,
+        input_description=input_description,
+        sample_rate=SAMPLE_RATE,
     )
 
     # Main loop
@@ -509,8 +508,8 @@ def main():
             # Record audio
             audio_data = record_audio(
                 state_manager,
-                sample_rate=input_sample_rate,
-                device_index=input_device_index,
+                sample_rate=SAMPLE_RATE,
+                capture_target=capture_target,
                 log=log,
             )
 
@@ -532,7 +531,7 @@ def main():
 
             # Save to temp file
             try:
-                temp_path = save_audio_to_wav(audio_data, sample_rate=input_sample_rate)
+                temp_path = save_audio_to_wav(audio_data, sample_rate=SAMPLE_RATE)
             except Exception as e:
                 log.error("audio_save_failed", error=str(e))
                 state_manager.set_state(DaemonState.IDLE)
@@ -593,7 +592,7 @@ def main():
                     transcription_duration_ms=transcription_duration_ms,
                     transcript=transcript,
                     compute_device=device,
-                    audio_input_device=input_device_name,
+                    audio_input_device=input_description,
                 )
             except Exception as e:
                 log.warning("stats_recording_failed", error=str(e))

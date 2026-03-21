@@ -112,6 +112,9 @@ def test_load_toml_config_logs_warning_and_returns_empty_on_parse_error(monkeypa
 
 
 def test_load_toml_config_refreshes_when_file_changes(monkeypatch, tmp_path):
+    import os
+    import time
+
     config_dir = tmp_path / "spkezy"
     config_dir.mkdir()
     config_file = config_dir / "config.toml"
@@ -120,6 +123,9 @@ def test_load_toml_config_refreshes_when_file_changes(monkeypatch, tmp_path):
 
     original = runtime.load_toml_config()
     config_file.write_text("[output]\npost_clipboard_action = 'autotype'\n", encoding="utf-8")
+    # Ensure mtime_ns differs so lru_cache treats this as a new call
+    future_ns = time.time_ns() + 1_000_000_000
+    os.utime(config_file, ns=(future_ns, future_ns))
 
     updated = runtime.load_toml_config()
 

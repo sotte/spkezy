@@ -29,3 +29,6 @@ transcriber.debug.log
 .testmondata
 .testmondata-shm
 .testmondata-wal
+
+# Spike/experiment files
+spike/

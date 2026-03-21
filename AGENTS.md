@@ -28,6 +28,8 @@ make chores            # Run all checks, fixes, tests
 ├── spkezy/
 │   ├── __init__.py         # Package marker (empty)
 │   ├── __main__.py         # CLI entrypoint (client + daemon wrapper)
+│   ├── audio.py            # Audio input configuration
+│   ├── capture.py          # PipeWire audio capture (pw-record subprocess)
 │   ├── daemon.py           # Daemon loop, recording, transcription
 │   ├── io.py               # Unix socket server + client send logic
 │   ├── output.py           # Output config + clipboard/autotype helpers
@@ -44,15 +46,15 @@ make chores            # Run all checks, fixes, tests
 
 - State machine: idle → recording → transcribing → idle
 - Unix socket IPC at `$XDG_RUNTIME_DIR/spkezy-daemon.sock`
-- PyAudio captures 16kHz mono PCM audio
+- PipeWire (`pw-record`) captures 16kHz mono PCM audio
 - NeMo model transcribes to text
 - Output to clipboard (pyperclip) with optional auto-type
 
 **Dependencies:**
 
 - NeMo Toolkit, PyTorch (CPU or CUDA builds)
-- PyAudio, pyperclip, structlog, rich
-- System: PortAudio, PulseAudio, notify-send, xclip/wl-clipboard
+- pyperclip, structlog, rich
+- System: PipeWire (pw-record), notify-send, xclip/wl-clipboard
 
 For comprehensive project context, see `openspec/project.md`.
 
