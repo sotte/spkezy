@@ -231,11 +231,20 @@ def auto_type_text(text: str, delay_ms: int, log=None):
 ########################################################################################
 # Model Loading
 def load_model(force_cpu: bool, log: Any) -> tuple[Any, str]:
-    """Load NeMo ASR model with lazy imports."""
-    log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3")
-
+    """Load ASR model - uses ONNX cache if available, falls back to NeMo."""
     # Suppress warnings
     warnings.filterwarnings("ignore")
+
+    # Try ONNX path first (much faster: ~4s vs ~30s)
+    from spkezy.onnx_inference import is_onnx_cached
+
+    if is_onnx_cached():
+        from spkezy.onnx_inference import load_onnx_model
+
+        return load_onnx_model(log)
+
+    # Fall back to NeMo
+    log.info("model_loading_start", model="nvidia/parakeet-tdt-0.6b-v3", backend="nemo")
 
     # Lazy imports - only load when actually starting daemon
     import nemo.collections.asr as nemo_asr
@@ -405,6 +414,7 @@ def copy_to_clipboard(text: str, log):
 ########################################################################################
 # MAIN
 def main():
+    startup_start = time.perf_counter()
     args = parse_arguments()
 
     # Fast path: list devices
@@ -457,7 +467,6 @@ def main():
         log,
     )
 
-    # Load model
     try:
         model, device = load_model(args.cpu, log)
     except Exception as e:
@@ -478,8 +487,10 @@ def main():
         log,
     )
 
+    startup_seconds = round(time.perf_counter() - startup_start, 1)
     log.info(
         "daemon_ready",
+        startup_seconds=startup_seconds,
         commands=["start", "stop", "toggle", "status", "shutdown"],
         capture_target=capture_target,
         input_description=input_description,

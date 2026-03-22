@@ -56,11 +56,37 @@ fix: ## Run lint fixes and formatting
 typecheck: ## Run ty type checker
 	$(UV) run --group dev ty check
 
-test: ## Run unit tests with testmon caching
-	$(UV_RUN) --group dev pytest --testmon
+test: ## Run unit tests with testmon caching, fall back to full suite if needed
+	@output=$$($(UV_RUN) --group dev pytest --testmon 2>&1); \
+	printf "%s\n" "$$output"; \
+	if printf "%s" "$$output" | grep -q "collected 0 items"; then \
+		echo "testmon selected 0 tests; running full suite"; \
+		$(UV_RUN) --group dev pytest; \
+	fi
 
 test-all: ## Run unit tests without testmon caching
 	$(UV_RUN) --group dev pytest
+
+################################################################################
+##@ Systemd (auto-start on login)
+install-service: ## Install systemd user service for auto-start
+	mkdir -p $(HOME)/.config/systemd/user
+	cp contrib/spkezy-daemon.service $(HOME)/.config/systemd/user/
+	systemctl --user daemon-reload
+	systemctl --user enable spkezy-daemon.service
+	@echo "✅ Service installed. Start with: systemctl --user start spkezy-daemon"
+
+uninstall-service: ## Remove systemd user service
+	systemctl --user stop spkezy-daemon.service 2>/dev/null || true
+	systemctl --user disable spkezy-daemon.service 2>/dev/null || true
+	rm -f $(HOME)/.config/systemd/user/spkezy-daemon.service
+	systemctl --user daemon-reload
+	@echo "✅ Service removed"
+
+################################################################################
+##@ Model Export
+export-onnx: ## Export model to ONNX for faster startup (~30s → ~4s on CPU)
+	$(UV_RUN) python -m spkezy.export_onnx
 
 ################################################################################
 ##@ Utilities

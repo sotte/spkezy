@@ -10,6 +10,8 @@ dependencies = [
   "pyperclip",
   "structlog",
   "onnx<1.18.0",
+  "onnxruntime",
+  "sentencepiece",
   "rich",
   "openai",
 ]

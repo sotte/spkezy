@@ -1,0 +1,22 @@
+[Unit]
+Description=spkezy - AI dictation daemon
+Documentation=https://github.com/stefan/spkezy
+After=pipewire.service
+Wants=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/spkezy-daemon
+Restart=on-failure
+RestartSec=5
+
+# Keep model in memory — don't get OOM-killed easily
+OOMScoreAdjust=-500
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spkezy
+
+[Install]
+WantedBy=default.target

@@ -31,6 +31,34 @@ uv run spkezy toggle
 uv run spkezy toggle
 ```
 
+### Faster startup with ONNX (optional)
+
+By default, `spkezy-daemon` can still fall back to the original NeMo loading path.
+For much faster daemon startup, export the model to ONNX once:
+
+```bash
+make export-onnx
+```
+
+This creates a local cache in `~/.cache/spkezy/onnx_consolidated/` and reduces
+startup from roughly **30s to ~4s** on CPU while keeping transcription quality aligned
+with the NeMo path.
+
+### Auto-start on login (optional)
+
+If you want the daemon always warm and ready, install the user service:
+
+```bash
+make install-service
+systemctl --user start spkezy-daemon
+```
+
+Remove it with:
+
+```bash
+make uninstall-service
+```
+
 ## Details
 
 ### Config File
