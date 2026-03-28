@@ -374,6 +374,29 @@ def show_stats(num_months: int = 3) -> None:
     console.print()
 
 
+def load_transcripts(limit: int = 50) -> list[dict]:
+    """Load recent transcript entries, most recent first."""
+    transcripts_dir = get_data_dir() / "transcripts"
+    entries: list[dict] = []
+    if not transcripts_dir.exists():
+        return entries
+
+    for file in sorted(transcripts_dir.glob("*.jsonl"), reverse=True):
+        with open(file) as f:
+            lines = f.readlines()
+        for line in reversed(lines):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+            if len(entries) >= limit:
+                return entries
+    return entries
+
+
 def export_stats_json() -> str:
     """Export all stats as JSON."""
     return json.dumps(load_all_stats(), indent=2)
