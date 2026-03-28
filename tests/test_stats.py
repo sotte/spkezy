@@ -139,6 +139,59 @@ def test_format_duration_outputs_human_readable_strings(milliseconds, expected):
     assert stats.format_duration(milliseconds) == expected
 
 
+def test_load_transcripts_returns_recent_entries_first(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    transcripts_dir = tmp_path / "spkezy" / "transcripts"
+    transcripts_dir.mkdir(parents=True)
+
+    day1 = transcripts_dir / "2024-01-01.jsonl"
+    day2 = transcripts_dir / "2024-01-02.jsonl"
+    day1.write_text(
+        json.dumps({"timestamp": "2024-01-01T09:00:00Z", "text": "first"})
+        + "\n"
+        + json.dumps({"timestamp": "2024-01-01T10:00:00Z", "text": "second"})
+        + "\n",
+        encoding="utf-8",
+    )
+    day2.write_text(
+        json.dumps({"timestamp": "2024-01-02T08:00:00Z", "text": "third"}) + "\n",
+        encoding="utf-8",
+    )
+
+    result = stats.load_transcripts(limit=50)
+
+    assert len(result) == 3
+    assert result[0]["text"] == "third"
+    assert result[1]["text"] == "second"
+    assert result[2]["text"] == "first"
+
+
+def test_load_transcripts_respects_limit(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    transcripts_dir = tmp_path / "spkezy" / "transcripts"
+    transcripts_dir.mkdir(parents=True)
+
+    file = transcripts_dir / "2024-01-01.jsonl"
+    lines = [
+        json.dumps({"timestamp": f"2024-01-01T{h:02d}:00:00Z", "text": f"entry {h}"})
+        for h in range(10)
+    ]
+    file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    result = stats.load_transcripts(limit=3)
+
+    assert len(result) == 3
+    assert result[0]["text"] == "entry 9"
+
+
+def test_load_transcripts_returns_empty_when_no_dir(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+
+    result = stats.load_transcripts()
+
+    assert result == []
+
+
 def test_export_stats_json_returns_serialized_entries(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
     stats_dir = tmp_path / "spkezy" / "stats"

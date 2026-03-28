@@ -26,7 +26,12 @@ def handle_stats_command():
                     num_months = int(sys.argv[i + 1])
                 except ValueError:
                     pass
-        show_stats(num_months=num_months)
+        if sys.stdout.isatty():
+            from spkezy.tui import run_tui
+
+            run_tui(num_months=num_months)
+        else:
+            show_stats(num_months=num_months)
 
 
 def main():
